@@ -138,7 +138,7 @@ describe('Todo MCP Tools', () => {
 
       const response = JSON.parse(result.content[0].text);
       expect(response.success).toBe(false);
-      expect(response.error).toContain('Text cannot be empty');
+      expect(response.error).toContain('Missing required parameter: text');
     });
 
     it('should handle sync failures', async () => {
@@ -252,8 +252,9 @@ describe('Todo MCP Tools', () => {
     });
 
     it('should accept partial updates', async () => {
+      const todoId = uuidv7();
       const existingTodo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'Original text',
         status: 'todo',
         project: 'work',
@@ -269,11 +270,11 @@ describe('Todo MCP Tools', () => {
       mockSyncManager.updateWithSync.mockResolvedValue(updatedTodo);
 
       const result = await mcpServer.handleToolCall('update_todo', {
-        id: '123',
+        id: todoId,
         text: 'Updated text'
       });
 
-      expect(mockSyncManager.updateWithSync).toHaveBeenCalledWith('123', {
+      expect(mockSyncManager.updateWithSync).toHaveBeenCalledWith(todoId, {
         text: 'Updated text'
       });
 
@@ -283,8 +284,9 @@ describe('Todo MCP Tools', () => {
     });
 
     it('should trigger sync after update', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'Updated',
         project: 'work',
         createdBy: 'user-123'
@@ -294,7 +296,7 @@ describe('Todo MCP Tools', () => {
       mockSyncManager.updateWithSync.mockResolvedValue(todo);
 
       await mcpServer.handleToolCall('update_todo', {
-        id: '123',
+        id: todoId,
         status: 'done'
       });
 
@@ -302,8 +304,9 @@ describe('Todo MCP Tools', () => {
     });
 
     it('should handle concurrent updates', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'Test',
         project: 'work',
         createdBy: 'user-123'
@@ -315,12 +318,12 @@ describe('Todo MCP Tools', () => {
         .mockResolvedValueOnce(todo);
 
       const result1 = mcpServer.handleToolCall('update_todo', {
-        id: '123',
+        id: todoId,
         text: 'Update 1'
       });
 
       const result2 = mcpServer.handleToolCall('update_todo', {
-        id: '123',
+        id: todoId,
         text: 'Update 2'
       });
 
@@ -348,8 +351,9 @@ describe('Todo MCP Tools', () => {
     });
 
     it('should soft delete by default', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'To delete',
         project: 'work',
         createdBy: 'user-123'
@@ -359,18 +363,19 @@ describe('Todo MCP Tools', () => {
       mockSyncManager.deleteWithSync.mockResolvedValue(undefined);
 
       const result = await mcpServer.handleToolCall('delete_todo', {
-        id: '123'
+        id: todoId
       });
 
-      expect(mockSyncManager.deleteWithSync).toHaveBeenCalledWith('123');
+      expect(mockSyncManager.deleteWithSync).toHaveBeenCalledWith(todoId);
 
       const response = JSON.parse(result.content[0].text);
       expect(response.success).toBe(true);
     });
 
     it('should trigger sync after delete', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'To delete',
         project: 'work',
         createdBy: 'user-123'
@@ -380,7 +385,7 @@ describe('Todo MCP Tools', () => {
       mockSyncManager.deleteWithSync.mockResolvedValue(undefined);
 
       await mcpServer.handleToolCall('delete_todo', {
-        id: '123'
+        id: todoId
       });
 
       expect(mockSyncManager.deleteWithSync).toHaveBeenCalled();
@@ -389,8 +394,9 @@ describe('Todo MCP Tools', () => {
 
   describe('complete_todo', () => {
     it('should mark todo as done', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'To complete',
         status: 'in-progress',
         project: 'work',
@@ -408,10 +414,10 @@ describe('Todo MCP Tools', () => {
       mockSyncManager.sync.mockResolvedValue({ success: true, hasConflicts: false });
 
       const result = await mcpServer.handleToolCall('complete_todo', {
-        id: '123'
+        id: todoId
       });
 
-      expect(mockTodoRepo.complete).toHaveBeenCalledWith('123');
+      expect(mockTodoRepo.complete).toHaveBeenCalledWith(todoId);
 
       const response = JSON.parse(result.content[0].text);
       expect(response.success).toBe(true);
@@ -422,8 +428,9 @@ describe('Todo MCP Tools', () => {
 
   describe('get_todo', () => {
     it('should get single todo by ID', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'Test todo',
         project: 'work',
         createdBy: 'user-123'
@@ -432,14 +439,14 @@ describe('Todo MCP Tools', () => {
       mockTodoRepo.get.mockResolvedValue(todo);
 
       const result = await mcpServer.handleToolCall('get_todo', {
-        id: '123'
+        id: todoId
       });
 
-      expect(mockTodoRepo.get).toHaveBeenCalledWith('123');
+      expect(mockTodoRepo.get).toHaveBeenCalledWith(todoId);
 
       const response = JSON.parse(result.content[0].text);
       expect(response.success).toBe(true);
-      expect(response.todo.id).toBe('123');
+      expect(response.todo.id).toBe(todoId);
       expect(response.todo.text).toBe('Test todo');
     });
 
@@ -491,14 +498,15 @@ describe('Todo MCP Tools', () => {
 
       const response = JSON.parse(result.content[0].text);
       expect(response.success).toBe(false);
-      expect(response.error).toContain('Query cannot be empty');
+      expect(response.error).toContain('Missing required parameter: query');
     });
   });
 
   describe('add_comment', () => {
     it('should add comment to todo', async () => {
+      const todoId = uuidv7();
       const todo = createTodo({
-        id: '123',
+        id: todoId,
         text: 'Test todo',
         project: 'work',
         createdBy: 'user-123',
@@ -519,7 +527,7 @@ describe('Todo MCP Tools', () => {
       mockSyncManager.updateWithSync.mockResolvedValue(todoWithComment);
 
       const result = await mcpServer.handleToolCall('add_comment', {
-        id: '123',
+        id: todoId,
         comment: 'Test comment'
       });
 

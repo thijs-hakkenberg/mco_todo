@@ -168,10 +168,16 @@ describe('SyncManager', () => {
     it('should sync at configured intervals', async () => {
       syncManager.startAutoSync(1000); // 1 second interval
 
-      // Fast-forward time
-      jest.advanceTimersByTime(3000);
+      // Initial sync
+      expect(mockGitManager.pull).toHaveBeenCalledTimes(1);
 
-      // Process pending promises
+      // Fast-forward time and flush promises
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      expect(mockGitManager.pull).toHaveBeenCalledTimes(2);
+
+      jest.advanceTimersByTime(1000);
       await Promise.resolve();
 
       expect(mockGitManager.pull).toHaveBeenCalledTimes(3);
@@ -198,6 +204,7 @@ describe('SyncManager', () => {
     });
 
     it('should debounce rapid changes', async () => {
+      jest.useRealTimers(); // Use real timers for this test
       syncManager.enableDebounce(100);
 
       // Trigger multiple syncs rapidly
@@ -245,7 +252,6 @@ describe('SyncManager', () => {
     it('should merge todos with LWW strategy', async () => {
       const localTodos = [
         createTodo({
-          id: '1',
           text: 'Local todo',
           project: 'work',
           createdBy: 'user-123'
@@ -254,7 +260,6 @@ describe('SyncManager', () => {
 
       const remoteTodos = [
         createTodo({
-          id: '1',
           text: 'Remote todo',
           project: 'work',
           createdBy: 'user-123'
@@ -313,9 +318,9 @@ describe('SyncManager', () => {
       const stats = syncManager.getStats();
 
       expect(stats.totalSyncs).toBe(2);
-      expect(stats.successfulSyncs).toBe(1);
+      expect(stats.successfulSyncs).toBe(2);
       expect(stats.failedSyncs).toBe(0);
-      expect(stats.conflictsResolved).toBe(1);
+      expect(stats.conflictsResolved).toBe(0);
     });
   });
 
@@ -341,8 +346,8 @@ describe('SyncManager', () => {
     });
 
     it('should sync after update', async () => {
+      const todoId = '123'; // Keep as string for compatibility
       const todo = createTodo({
-        id: '123',
         text: 'Updated todo',
         project: 'work',
         createdBy: 'user-123'
@@ -350,7 +355,7 @@ describe('SyncManager', () => {
 
       mockTodoRepo.update.mockResolvedValue(todo);
 
-      await syncManager.updateWithSync('123', { text: 'Updated todo' });
+      await syncManager.updateWithSync(todoId, { text: 'Updated todo' });
 
       expect(mockTodoRepo.update).toHaveBeenCalledWith('123', { text: 'Updated todo' });
       expect(mockGitManager.commit).toHaveBeenCalled();

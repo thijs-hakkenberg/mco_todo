@@ -1,6 +1,6 @@
 # Git-Based MCP Todo Server
 
-A Model Context Protocol (MCP) server that uses Git as the backend for a collaborative todo system. Users interact via Claude, and changes sync through Git, leveraging Git's permission system and version control.
+A Model Context Protocol (MCP) server that uses Git as the backend for a collaborative todo system. Users interact via Claude Desktop or Claude Code, and changes sync through Git, leveraging Git's permission system and version control for team collaboration.
 
 ## Features
 
@@ -85,12 +85,28 @@ Add to your Claude Desktop configuration file:
 
 ### For Claude Code
 
-Add to your Claude Code configuration file:
-- macOS/Linux: `~/.config/claude-code/config.json`
-- Windows: `%APPDATA%\claude-code\config.json`
+Add to your `.claude/config.json` file in your project directory:
 
-You can use the exact same configuration as for Claude Desktop.
-Alternatively, you can run 'claude mcp add-from-claude-desktop' 
+```json
+{
+  "mcpServers": {
+    "git-todo": {
+      "command": "node",
+      "args": ["/absolute/path/to/our_todo/dist/index.js"],
+      "env": {
+        "TODO_REPO_PATH": "/Users/you/my-todos",
+        "TODO_REPO_URL": "https://github.com/you/my-todos.git",
+        "GIT_USER_NAME": "Your Name",
+        "GIT_USER_EMAIL": "you@example.com",
+        "AUTO_SYNC": "true",
+        "SYNC_INTERVAL_SECONDS": "300"
+      }
+    }
+  }
+}
+```
+
+Alternatively, you can run `claude mcp add git-todo` to add it interactively. 
 
 **Note**: Replace `/absolute/path/to/our_todo` with the actual path to this repository on your system, and update the environment variables with your specific configuration.
 
