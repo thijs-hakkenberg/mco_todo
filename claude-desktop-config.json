@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "git-todo": {
+      "command": "node",
+      "args": ["/Users/thijshakkenberg/our_todo/dist/index.js"],
+      "env": {
+        "TODO_REPO_PATH": "/Users/thijshakkenberg/my-todos",
+        "TODO_REPO_URL": "https://github.com/thijshakkenberg/my-todos.git",
+        "GIT_USER_NAME": "Your Name",
+        "GIT_USER_EMAIL": "you@example.com",
+        "AUTO_SYNC": "true",
+        "SYNC_INTERVAL_SECONDS": "300"
+      }
+    }
+  }
+}
