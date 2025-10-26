@@ -56,7 +56,9 @@ git remote add origin https://github.com/yourusername/my-todos.git
 git push -u origin main
 ```
 
-5. Configure Claude Desktop:
+5. Configure Claude Desktop or Claude Code:
+
+### For Claude Desktop
 
 Add to your Claude Desktop configuration file:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -81,6 +83,17 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
+### For Claude Code
+
+Add to your Claude Code configuration file:
+- macOS/Linux: `~/.config/claude-code/config.json`
+- Windows: `%APPDATA%\claude-code\config.json`
+
+You can use the exact same configuration as for Claude Desktop.
+Alternatively, you can run 'claude mcp add-from-claude-desktop' 
+
+**Note**: Replace `/absolute/path/to/our_todo` with the actual path to this repository on your system, and update the environment variables with your specific configuration.
+
 ## Configuration
 
 ### Environment Variables
@@ -94,7 +107,7 @@ Add to your Claude Desktop configuration file:
 
 ## Usage
 
-Once configured, you can interact with your todos through Claude Desktop:
+Once configured, you can interact with your todos through Claude Desktop or Claude Code:
 
 ### Available Commands
 
