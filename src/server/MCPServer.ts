@@ -267,6 +267,70 @@ export class MCPServer {
             }
           }
         }
+      },
+      {
+        name: 'batch_create_todos',
+        description: 'Create multiple todos in a single operation (supports hierarchical creation)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            todos: {
+              type: 'array',
+              description: 'Array of todos to create',
+              items: {
+                type: 'object',
+                properties: {
+                  text: {
+                    type: 'string',
+                    description: 'Todo text'
+                  },
+                  description: {
+                    type: 'string',
+                    description: 'Detailed description'
+                  },
+                  project: {
+                    type: 'string',
+                    description: 'Project name'
+                  },
+                  priority: {
+                    type: 'string',
+                    enum: ['low', 'medium', 'high', 'urgent'],
+                    description: 'Priority level'
+                  },
+                  status: {
+                    type: 'string',
+                    enum: ['todo', 'in-progress', 'blocked', 'done'],
+                    description: 'Initial status'
+                  },
+                  tags: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Tags'
+                  },
+                  assignee: {
+                    type: 'string',
+                    description: 'Assignee user ID'
+                  },
+                  dueDate: {
+                    type: 'string',
+                    description: 'Due date (ISO 8601)'
+                  },
+                  dependencies: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'IDs of todos this depends on'
+                  },
+                  parentIndex: {
+                    type: 'number',
+                    description: 'Index of parent todo in this batch (for hierarchical creation)'
+                  }
+                },
+                required: ['text', 'project']
+              }
+            }
+          },
+          required: ['todos']
+        }
       }
     ];
   }
@@ -299,6 +363,8 @@ export class MCPServer {
           return await this.handleSyncRepository(args);
         case 'get_history':
           return await this.handleGetHistory(args);
+        case 'batch_create_todos':
+          return await this.handleBatchCreateTodos(args);
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -567,5 +633,105 @@ export class MCPServer {
         }, null, 2)
       }]
     };
+  }
+
+  private async handleBatchCreateTodos(args: any) {
+    if (!args.todos || !Array.isArray(args.todos)) {
+      throw new Error('Missing required parameter: todos (must be an array)');
+    }
+
+    if (args.todos.length === 0) {
+      throw new Error('Todos array cannot be empty');
+    }
+
+    // Validate all todos first
+    for (let i = 0; i < args.todos.length; i++) {
+      const todo = args.todos[i];
+      if (!todo.text || todo.text.trim() === '') {
+        throw new Error(`Todo at index ${i}: text cannot be empty`);
+      }
+      if (!todo.project) {
+        throw new Error(`Todo at index ${i}: project is required`);
+      }
+      if (todo.parentIndex !== undefined) {
+        if (todo.parentIndex >= i) {
+          throw new Error(`Todo at index ${i}: parentIndex must reference a todo that comes before it in the array`);
+        }
+        if (todo.parentIndex < 0) {
+          throw new Error(`Todo at index ${i}: parentIndex must be non-negative`);
+        }
+      }
+    }
+
+    const todoInputs: CreateTodoInput[] = [];
+
+    try {
+      // Build inputs for todos, resolving parent dependencies
+      for (let i = 0; i < args.todos.length; i++) {
+        const todoData = args.todos[i];
+
+        // Build input for todo creation
+        const input: CreateTodoInput = {
+          text: todoData.text,
+          description: todoData.description,
+          project: todoData.project,
+          priority: todoData.priority || 'medium',
+          status: todoData.status || 'todo',
+          tags: todoData.tags || [],
+          assignee: todoData.assignee,
+          dueDate: todoData.dueDate,
+          dependencies: todoData.dependencies || [],
+          createdBy: 'mcp-user'
+        };
+
+        // Note: Parent dependencies will need to be resolved after creation
+        // since we don't have the IDs yet
+        if (todoData.parentIndex !== undefined) {
+          // Store parent index for later resolution
+          (input as any)._parentIndex = todoData.parentIndex;
+        }
+
+        todoInputs.push(input);
+      }
+
+      // Create all todos in a single batch operation
+      const createdTodos = await this.todoRepo.createBatch(todoInputs);
+
+      // Now update todos with parent dependencies if needed
+      for (let i = 0; i < createdTodos.length; i++) {
+        const input = todoInputs[i] as any;
+        if (input._parentIndex !== undefined) {
+          const parentTodo = createdTodos[input._parentIndex];
+          if (parentTodo) {
+            // Update the todo to add parent dependency
+            await this.todoRepo.update(createdTodos[i].id, {
+              dependencies: [...createdTodos[i].dependencies, parentTodo.id],
+              tags: [...createdTodos[i].tags, `parent:${parentTodo.id}`]
+            });
+            // Update the created todo object for response
+            createdTodos[i].dependencies.push(parentTodo.id);
+            createdTodos[i].tags.push(`parent:${parentTodo.id}`);
+          }
+        }
+      }
+
+      // Commit all changes in a single batch
+      await this.syncManager.sync();
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            success: true,
+            todos: createdTodos,
+            count: createdTodos.length,
+            message: `Successfully created ${createdTodos.length} todos`
+          }, null, 2)
+        }]
+      };
+    } catch (error: any) {
+      // Rollback is handled by createBatch method
+      throw new Error(`Batch creation failed: ${error.message}`);
+    }
   }
 }

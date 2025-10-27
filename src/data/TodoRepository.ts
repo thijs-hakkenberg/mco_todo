@@ -96,6 +96,44 @@ export class TodoRepository {
   }
 
   /**
+   * Create multiple todos in a batch operation
+   * @param inputs Array of todo inputs to create
+   * @returns Array of created todos
+   */
+  async createBatch(inputs: CreateTodoInput[]): Promise<Todo[]> {
+    this.ensureInitialized();
+
+    if (!Array.isArray(inputs) || inputs.length === 0) {
+      throw new Error('Inputs must be a non-empty array');
+    }
+
+    const createdTodos: Todo[] = [];
+
+    try {
+      // Create all todos
+      for (const input of inputs) {
+        const todo = createTodo(input);
+        this.todos.push(todo);
+        createdTodos.push(todo);
+      }
+
+      // Save once after all todos are created
+      await this.saveTodos();
+
+      return createdTodos;
+    } catch (error) {
+      // Rollback on failure - remove any todos that were added
+      for (const todo of createdTodos) {
+        const index = this.todos.findIndex(t => t.id === todo.id);
+        if (index !== -1) {
+          this.todos.splice(index, 1);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Update an existing todo
    */
   async update(id: string, updates: UpdateTodoInput): Promise<Todo> {

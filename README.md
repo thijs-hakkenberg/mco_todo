@@ -129,6 +129,7 @@ Once configured, you can interact with your todos through Claude Desktop or Clau
 
 - **List todos**: "Show me my todos"
 - **Create todo**: "Add a todo: Implement user authentication"
+- **Batch create**: "Create multiple todos: Setup project, Install dependencies, Configure linter"
 - **Update todo**: "Mark todo 123 as in-progress"
 - **Complete todo**: "Complete todo 456"
 - **Delete todo**: "Delete todo 789"
