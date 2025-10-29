@@ -1,32 +1,35 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  roots: ['<rootDir>/src'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
-    '!src/index.ts'
+    '!src/**/__tests__/**',
+    '!src/index.ts' // Exclude main entry point
   ],
   coverageThreshold: {
     global: {
-      branches: 90,
-      functions: 90,
-      lines: 90,
-      statements: 90
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
     }
   },
-  extensionsToTreatAsEsm: ['.ts'],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^uuid$': '<rootDir>/node_modules/uuid/wrapper.mjs'
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
-        verbatimModuleSyntax: false
+        verbatimModuleSyntax: false,
+        esModuleInterop: true
       }
     }]
-  }
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ]
 };

@@ -36,6 +36,9 @@ pids
 # Test todo repository (example data)
 my-todos/
 
+# Todo repository (separate git repo)
+todos/
+
 # Temporary files
 *.tmp
 .tmp/
