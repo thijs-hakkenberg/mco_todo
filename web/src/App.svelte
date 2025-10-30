@@ -14,7 +14,7 @@
 
   main {
     width: 100%;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-y: auto;
   }
 </style>
