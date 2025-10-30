@@ -69,34 +69,11 @@ git push -u origin main
 
 5. Configure Claude Desktop or Claude Code:
 
-### For Claude Desktop
+### Configuration File
 
-Add to your Claude Desktop configuration file:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "git-todo": {
-      "command": "node",
-      "args": ["/absolute/path/to/our_todo/dist/index.js"],
-      "env": {
-        "TODO_REPO_PATH": "/Users/you/my-todos",
-        "TODO_REPO_URL": "https://github.com/you/my-todos.git",
-        "GIT_USER_NAME": "Your Name",
-        "GIT_USER_EMAIL": "you@example.com",
-        "AUTO_SYNC": "true",
-        "SYNC_INTERVAL_SECONDS": "300"
-      }
-    }
-  }
-}
-```
-
-### For Claude Code
-
-Add to your `.claude/config.json` file in your project directory:
+Add the following configuration to:
+- **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+- **Claude Code**: `.claude/config.json` in your project directory
 
 ```json
 {
@@ -116,10 +93,18 @@ Add to your `.claude/config.json` file in your project directory:
   }
 }
 ```
-
-Alternatively, you can run `claude mcp add git-todo` to add it interactively.
 
 **Note**: Replace `/absolute/path/to/our_todo` with the actual path to this repository on your system, and update the environment variables with your specific configuration.
+
+### Alternative Setup for Claude Code
+
+If you've already configured the MCP server in Claude Desktop, you can easily add it to Claude Code by running:
+
+```bash
+claude mcp add-from-claude-desktop
+```
+
+This will automatically copy the configuration from your Claude Desktop setup to Claude Code.
 
 ## Running the Web-Based Kanban Board
 
@@ -234,6 +219,8 @@ npm run preview
 ```
 
 ### Kanban Board Features
+
+![Kanban Board Screenshot](kanban_board_screenshot.png)
 
 - **Four Columns**: To Do, In Progress, Blocked, Done
 - **Drag-and-Drop**: Move todos between columns to change status
@@ -482,7 +469,7 @@ Ensure the MCP server has read/write access to:
 
 ## License
 
-ISC
+MIT
 
 ## Acknowledgments
 
