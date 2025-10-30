@@ -71,12 +71,13 @@
     return todoStore.filters.tags.has(tag);
   }
 
-  $: hasActiveFilters =
+  const hasActiveFilters = $derived(
     todoStore.filters.search !== '' ||
     todoStore.filters.project !== 'all' ||
     todoStore.filters.priority !== 'all' ||
     (!todoStore.filters.tags.has('all') && todoStore.filters.tags.size > 0) ||
-    todoStore.filters.assignee !== 'all';
+    todoStore.filters.assignee !== 'all'
+  );
 </script>
 
 <div class="bg-white border-b border-gray-200">

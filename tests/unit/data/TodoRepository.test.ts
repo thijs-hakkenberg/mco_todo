@@ -501,4 +501,235 @@ describe('TodoRepository', () => {
       expect(results).toHaveLength(2);
     });
   });
+
+  describe('filter options', () => {
+    beforeEach(async () => {
+      const todos = [
+        createTodo({
+          text: 'Frontend task 1',
+          project: 'frontend',
+          priority: 'high',
+          tags: ['ui', 'react'],
+          assignee: 'alice',
+          createdBy: 'user-123'
+        }),
+        createTodo({
+          text: 'Backend task 1',
+          project: 'backend',
+          priority: 'urgent',
+          tags: ['api', 'nodejs'],
+          assignee: 'bob',
+          createdBy: 'user-123'
+        }),
+        createTodo({
+          text: 'Frontend task 2',
+          project: 'frontend',
+          priority: 'medium',
+          tags: ['ui', 'css'],
+          assignee: 'alice',
+          createdBy: 'user-123'
+        }),
+        createTodo({
+          text: 'DevOps task',
+          project: 'infrastructure',
+          priority: 'low',
+          tags: ['docker', 'ci'],
+          createdBy: 'user-123'
+        })
+      ];
+
+      (fs.readFile as jest.Mock).mockResolvedValue(
+        JSON.stringify({ todos })
+      );
+      await repo.reload();
+    });
+
+    describe('getProjects', () => {
+      it('should return distinct projects sorted alphabetically', async () => {
+        const projects = await repo.getProjects();
+
+        expect(projects).toEqual(['backend', 'frontend', 'infrastructure']);
+      });
+
+      it('should return empty array when no todos exist', async () => {
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos: [] })
+        );
+        await repo.reload();
+
+        const projects = await repo.getProjects();
+
+        expect(projects).toEqual([]);
+      });
+
+      it('should not include archived todos', async () => {
+        const todos = [
+          createTodo({
+            text: 'Active',
+            project: 'active-project',
+            createdBy: 'user-123'
+          }),
+          {
+            ...createTodo({
+              text: 'Archived',
+              project: 'archived-project',
+              createdBy: 'user-123'
+            }),
+            archived: true
+          }
+        ];
+
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos })
+        );
+        await repo.reload();
+
+        const projects = await repo.getProjects();
+
+        expect(projects).toEqual(['active-project']);
+      });
+    });
+
+    describe('getTags', () => {
+      it('should return distinct tags sorted alphabetically', async () => {
+        const tags = await repo.getTags();
+
+        expect(tags).toEqual(['api', 'ci', 'css', 'docker', 'nodejs', 'react', 'ui']);
+      });
+
+      it('should flatten tags from multiple todos', async () => {
+        const todos = [
+          createTodo({
+            text: 'Task 1',
+            project: 'project1',
+            tags: ['a', 'b'],
+            createdBy: 'user-123'
+          }),
+          createTodo({
+            text: 'Task 2',
+            project: 'project1',
+            tags: ['b', 'c'],
+            createdBy: 'user-123'
+          })
+        ];
+
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos })
+        );
+        await repo.reload();
+
+        const tags = await repo.getTags();
+
+        expect(tags).toEqual(['a', 'b', 'c']);
+      });
+
+      it('should return empty array when no todos have tags', async () => {
+        const todos = [
+          createTodo({
+            text: 'Task without tags',
+            project: 'project1',
+            createdBy: 'user-123'
+          })
+        ];
+
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos })
+        );
+        await repo.reload();
+
+        const tags = await repo.getTags();
+
+        expect(tags).toEqual([]);
+      });
+    });
+
+    describe('getAssignees', () => {
+      it('should return distinct assignees sorted alphabetically', async () => {
+        const assignees = await repo.getAssignees();
+
+        expect(assignees).toEqual(['alice', 'bob']);
+      });
+
+      it('should not include undefined assignees', async () => {
+        const todos = [
+          createTodo({
+            text: 'Assigned task',
+            project: 'project1',
+            assignee: 'charlie',
+            createdBy: 'user-123'
+          }),
+          createTodo({
+            text: 'Unassigned task',
+            project: 'project1',
+            createdBy: 'user-123'
+          })
+        ];
+
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos })
+        );
+        await repo.reload();
+
+        const assignees = await repo.getAssignees();
+
+        expect(assignees).toEqual(['charlie']);
+      });
+
+      it('should return empty array when no todos are assigned', async () => {
+        const todos = [
+          createTodo({
+            text: 'Unassigned',
+            project: 'project1',
+            createdBy: 'user-123'
+          })
+        ];
+
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos })
+        );
+        await repo.reload();
+
+        const assignees = await repo.getAssignees();
+
+        expect(assignees).toEqual([]);
+      });
+    });
+
+    describe('getPriorities', () => {
+      it('should return all priority levels', async () => {
+        const priorities = await repo.getPriorities();
+
+        expect(priorities).toEqual(['urgent', 'high', 'medium', 'low']);
+      });
+    });
+
+    describe('getFilterOptions', () => {
+      it('should return all filter options', async () => {
+        const options = await repo.getFilterOptions();
+
+        expect(options).toEqual({
+          projects: ['backend', 'frontend', 'infrastructure'],
+          tags: ['api', 'ci', 'css', 'docker', 'nodejs', 'react', 'ui'],
+          assignees: ['alice', 'bob'],
+          priorities: ['urgent', 'high', 'medium', 'low']
+        });
+      });
+
+      it('should return empty arrays when no todos exist', async () => {
+        (fs.readFile as jest.Mock).mockResolvedValue(
+          JSON.stringify({ todos: [] })
+        );
+        await repo.reload();
+
+        const options = await repo.getFilterOptions();
+
+        expect(options).toEqual({
+          projects: [],
+          tags: [],
+          assignees: [],
+          priorities: ['urgent', 'high', 'medium', 'low']
+        });
+      });
+    });
+  });
 });
