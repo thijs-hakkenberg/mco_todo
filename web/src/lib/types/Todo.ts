@@ -54,9 +54,9 @@ export interface UpdateTodoInput {
 
 export interface TodoFilters {
   search: string;
-  project: string;
+  projects: string[]; // Empty array = all projects
   priority: string;
-  tags: Set<string>;
+  tags: string[]; // Empty array = all tags
   assignee: string;
   status?: string;
 }

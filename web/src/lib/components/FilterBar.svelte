@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { todoStore } from '../stores/todos.svelte';
+  import MultiSelectDropdown from './MultiSelectDropdown.svelte';
 
   // Filter options state
   let filterOptions = $state<{
@@ -15,10 +16,21 @@
     priorities: []
   });
 
-  // Derived filter arrays with 'all' prepended
-  const projects = $derived(['all', ...filterOptions.projects]);
+  // Bindable selected values for dropdowns
+  let selectedProjects = $state<string[]>([]);
+  let selectedTags = $state<string[]>([]);
+
+  // Sync selected values with store
+  $effect(() => {
+    todoStore.setProjectsFilter(selectedProjects);
+  });
+
+  $effect(() => {
+    todoStore.setTagsFilter(selectedTags);
+  });
+
+  // Derived filter arrays for chip-based filters
   const priorities = $derived(['all', ...filterOptions.priorities]);
-  const tags = $derived(['all', ...filterOptions.tags]);
   const assignees = $derived(['all', 'unassigned', ...filterOptions.assignees]);
 
   onMount(async () => {
@@ -40,16 +52,8 @@
     }
   });
 
-  function handleProjectFilter(project: string) {
-    todoStore.setProjectFilter(project);
-  }
-
   function handlePriorityFilter(priority: string) {
     todoStore.setPriorityFilter(priority);
-  }
-
-  function handleTagFilter(tag: string) {
-    todoStore.toggleTagFilter(tag);
   }
 
   function handleAssigneeFilter(assignee: string) {
@@ -63,19 +67,17 @@
 
   function clearAllFilters() {
     todoStore.clearFilters();
+    selectedProjects = [];
+    selectedTags = [];
     const searchInput = document.getElementById('searchInput') as HTMLInputElement;
     if (searchInput) searchInput.value = '';
   }
 
-  function isTagActive(tag: string): boolean {
-    return todoStore.filters.tags.has(tag);
-  }
-
   const hasActiveFilters = $derived(
     todoStore.filters.search !== '' ||
-    todoStore.filters.project !== 'all' ||
+    todoStore.filters.projects.length > 0 ||
     todoStore.filters.priority !== 'all' ||
-    (!todoStore.filters.tags.has('all') && todoStore.filters.tags.size > 0) ||
+    todoStore.filters.tags.length > 0 ||
     todoStore.filters.assignee !== 'all'
   );
 </script>
@@ -112,16 +114,12 @@
         <!-- Project Filter -->
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-2">Projects</label>
-          <div class="flex flex-wrap gap-1" id="projectFilters">
-            {#each projects as project}
-              <button
-                class="filter-chip px-3 py-1 text-xs rounded-full border transition-colors {todoStore.filters.project === project ? 'bg-blue-100 border-blue-500' : 'border-gray-300 bg-white hover:bg-gray-50'}"
-                on:click={() => handleProjectFilter(project)}
-              >
-                {project === 'all' ? 'All Projects' : project.charAt(0).toUpperCase() + project.slice(1)}
-              </button>
-            {/each}
-          </div>
+          <MultiSelectDropdown
+            label="Projects"
+            options={filterOptions.projects}
+            bind:selected={selectedProjects}
+            placeholder="Search projects..."
+          />
         </div>
 
         <!-- Priority Filter -->
@@ -155,19 +153,12 @@
         <!-- Tags Filter -->
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-2">Tags</label>
-          <div class="flex flex-wrap gap-1" id="tagFilters">
-            {#each tags as tag}
-              <button
-                class="filter-chip px-3 py-1 text-xs rounded-full border transition-colors
-                  {isTagActive(tag)
-                    ? 'bg-blue-100 border-blue-500 text-blue-700'
-                    : 'border-gray-300 bg-white hover:bg-gray-50'}"
-                on:click={() => handleTagFilter(tag)}
-              >
-                {tag === 'all' ? 'All Tags' : tag}
-              </button>
-            {/each}
-          </div>
+          <MultiSelectDropdown
+            label="Tags"
+            options={filterOptions.tags}
+            bind:selected={selectedTags}
+            placeholder="Search tags..."
+          />
         </div>
 
         <!-- Assignee Filter -->
@@ -203,16 +194,18 @@
                 </span>
               {/if}
 
-              {#if todoStore.filters.project !== 'all'}
+              {#each todoStore.filters.projects as project}
                 <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                  Project: {todoStore.filters.project}
-                  <button class="ml-1 hover:text-blue-900" on:click={() => todoStore.setProjectFilter('all')}>
+                  Project: {project}
+                  <button class="ml-1 hover:text-blue-900" on:click={() => {
+                    selectedProjects = selectedProjects.filter(p => p !== project);
+                  }}>
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                     </svg>
                   </button>
                 </span>
-              {/if}
+              {/each}
 
               {#if todoStore.filters.priority !== 'all'}
                 <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
@@ -225,18 +218,18 @@
                 </span>
               {/if}
 
-              {#if !todoStore.filters.tags.has('all')}
-                {#each Array.from(todoStore.filters.tags) as tag}
-                  <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    Tag: {tag}
-                    <button class="ml-1 hover:text-blue-900" on:click={() => todoStore.toggleTagFilter(tag)}>
-                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                      </svg>
-                    </button>
-                  </span>
-                {/each}
-              {/if}
+              {#each todoStore.filters.tags as tag}
+                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                  Tag: {tag}
+                  <button class="ml-1 hover:text-blue-900" on:click={() => {
+                    selectedTags = selectedTags.filter(t => t !== tag);
+                  }}>
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                  </button>
+                </span>
+              {/each}
 
               {#if todoStore.filters.assignee !== 'all'}
                 <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">

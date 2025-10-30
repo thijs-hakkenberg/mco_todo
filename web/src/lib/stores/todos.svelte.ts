@@ -8,9 +8,9 @@ class TodoStore {
   todos = $state<Todo[]>([]);
   filters = $state<TodoFilters>({
     search: '',
-    project: 'all',
+    projects: [], // Empty = all
     priority: 'all',
-    tags: new Set(['all']),
+    tags: [], // Empty = all
     assignee: 'all'
   });
   loading = $state(false);
@@ -30,9 +30,9 @@ class TodoStore {
       );
     }
 
-    // Project filter
-    if (this.filters.project !== 'all') {
-      filtered = filtered.filter(todo => todo.project === this.filters.project);
+    // Projects filter (empty array = all)
+    if (this.filters.projects.length > 0) {
+      filtered = filtered.filter(todo => this.filters.projects.includes(todo.project));
     }
 
     // Priority filter
@@ -40,10 +40,10 @@ class TodoStore {
       filtered = filtered.filter(todo => todo.priority === this.filters.priority);
     }
 
-    // Tags filter
-    if (!this.filters.tags.has('all')) {
+    // Tags filter (empty array = all)
+    if (this.filters.tags.length > 0) {
       filtered = filtered.filter(todo =>
-        todo.tags.some(tag => this.filters.tags.has(tag))
+        todo.tags.some(tag => this.filters.tags.includes(tag))
       );
     }
 
@@ -297,48 +297,28 @@ class TodoStore {
     this.filters.search = search;
   }
 
-  setProjectFilter(project: string): void {
-    this.filters.project = project;
+  setProjectsFilter(projects: string[]): void {
+    this.filters.projects = projects;
   }
 
   setPriorityFilter(priority: string): void {
     this.filters.priority = priority;
   }
 
-  setAssigneeFilter(assignee: string): void {
-    this.filters.assignee = assignee;
+  setTagsFilter(tags: string[]): void {
+    this.filters.tags = tags;
   }
 
-  toggleTagFilter(tag: string): void {
-    if (tag === 'all') {
-      this.filters.tags.clear();
-      this.filters.tags.add('all');
-    } else {
-      // Remove 'all' if it exists
-      if (this.filters.tags.has('all')) {
-        this.filters.tags.clear();
-      }
-
-      // Toggle the tag
-      if (this.filters.tags.has(tag)) {
-        this.filters.tags.delete(tag);
-      } else {
-        this.filters.tags.add(tag);
-      }
-
-      // If no tags selected, set to 'all'
-      if (this.filters.tags.size === 0) {
-        this.filters.tags.add('all');
-      }
-    }
+  setAssigneeFilter(assignee: string): void {
+    this.filters.assignee = assignee;
   }
 
   clearFilters(): void {
     this.filters = {
       search: '',
-      project: 'all',
+      projects: [],
       priority: 'all',
-      tags: new Set(['all']),
+      tags: [],
       assignee: 'all'
     };
   }
@@ -348,9 +328,9 @@ class TodoStore {
     this.todos = [];
     this.filters = {
       search: '',
-      project: 'all',
+      projects: [],
       priority: 'all',
-      tags: new Set(['all']),
+      tags: [],
       assignee: 'all'
     };
     this.loading = false;
