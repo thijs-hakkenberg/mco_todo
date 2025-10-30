@@ -5,6 +5,53 @@ All notable changes to the Git-Based MCP Todo Server will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-30
+
+### Added
+- **Dynamic Filter Options**: New MCP tools and API endpoints for retrieving distinct filter values
+  - `get_projects` - Get list of all unique projects
+  - `get_tags` - Get list of all unique tags
+  - `get_assignees` - Get list of all unique assignees
+  - `get_priorities` - Get list of all priorities
+  - `get_filter_options` - Get all filter options in one call (combined)
+  - `/api/todos/filter-options` endpoint for web UI
+- **Multi-Select Dropdown Component**: Searchable dropdown for filtering with many options
+  - Replaces chip-based UI for projects and tags (handles 100+ items gracefully)
+  - Search/filter within dropdown
+  - Shows selected count in button ("Projects (3)" or "All Projects")
+  - Click-outside-to-close behavior
+  - Smooth animations and keyboard accessible
+
+### Changed
+- **FilterBar UX Enhancement**: Replaced overwhelming chip layout with scalable dropdowns
+  - Projects: Chip-based → Multi-select dropdown (handles 17+ projects)
+  - Tags: Chip-based → Multi-select dropdown (handles 270+ tags)
+  - Priorities: Kept as chips (only 4 items)
+  - Assignees: Kept as chips (small list)
+- **Filter Data Model**: Updated from single-select to multi-select
+  - `TodoFilters.project` → `TodoFilters.projects: string[]`
+  - `TodoFilters.tags` changed from `Set<string>` to `string[]`
+  - Empty arrays mean "show all" (no filter applied)
+
+### Fixed
+- **Svelte 5 Compatibility**: Migrated legacy reactive statements to modern runes
+  - Replaced `$:` with `$derived` in FilterBar
+  - Converted store getters to `$derived.by()` for proper reactivity
+  - Migrated component props from `export let` to `$props()`
+- **Tailwind CSS v4**: Fixed configuration to use CSS-based config instead of v3 directives
+  - Changed from `@tailwind` directives to `@import "tailwindcss"`
+  - All utility classes now generate correctly
+
+### Technical Details
+- TodoRepository: 5 new atomic methods (`getProjects`, `getTags`, `getAssignees`, `getPriorities`, `getFilterOptions`)
+- MCPServer: 5 new MCP tools for filter options
+- MultiSelectDropdown: Reusable Svelte 5 component with TypeScript
+- Comprehensive test coverage: 13 new tests for filter options (105/105 unit tests passing)
+- Jest configuration updated to include `tests/` directory
+
+### Known Issues
+- Scrolling down does not work in kanban board UI (tracked in git-todo)
+
 ## [1.2.0] - 2025-10-29
 
 ### Added
