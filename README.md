@@ -474,10 +474,18 @@ MIT
 ## Acknowledgments
 
 Built with:
-- [Model Context Protocol SDK](https://github.com/anthropics/mcp)
-- [simple-git](https://github.com/steveukx/git-js)
-- [Zod](https://github.com/colinhacks/zod)
-- [uuidv7](https://github.com/LiosK/uuidv7)
+- [Model Context Protocol SDK](https://github.com/anthropics/mcp) - MCP protocol implementation
+- [Svelte 5](https://svelte.dev/) - Reactive UI framework with Runes
+- [Vite](https://vitejs.dev/) - Fast build tool and dev server
+- [Express](https://expressjs.com/) - Web framework for API server
+- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+- [TailwindCSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [simple-git](https://github.com/steveukx/git-js) - Git operations in Node.js
+- [Zod](https://github.com/colinhacks/zod) - Schema validation
+- [uuidv7](https://github.com/LiosK/uuidv7) - Time-ordered UUID generation
+- [date-fns](https://date-fns.org/) - Modern date utility library
+- [svelte-dnd-action](https://github.com/isaacHagoel/svelte-dnd-action) - Drag-and-drop for Svelte
+- [Jest](https://jestjs.io/) & [Vitest](https://vitest.dev/) - Testing frameworks
 
 ## Support
 
