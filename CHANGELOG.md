@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tailwind CSS v4**: Fixed configuration to use CSS-based config instead of v3 directives
   - Changed from `@tailwind` directives to `@import "tailwindcss"`
   - All utility classes now generate correctly
+- **Kanban Board Scrolling**: Fixed vertical scrolling issue
+  - Changed `overflow: hidden` to `overflow-y: auto` in App.svelte
+  - Users can now scroll through all todos in columns
+  - Content expands beyond viewport as needed
 
 ### Technical Details
 - TodoRepository: 5 new atomic methods (`getProjects`, `getTags`, `getAssignees`, `getPriorities`, `getFilterOptions`)
