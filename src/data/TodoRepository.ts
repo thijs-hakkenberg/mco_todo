@@ -415,4 +415,61 @@ export class TodoRepository {
       new Date(t.dueDate) < nextWeek
     );
   }
+
+  /**
+   * Get distinct projects
+   */
+  async getProjects(): Promise<string[]> {
+    this.ensureInitialized();
+    const activeTodos = this.todos.filter(t => !t.archived);
+    return [...new Set(activeTodos.map(t => t.project))].sort();
+  }
+
+  /**
+   * Get distinct tags
+   */
+  async getTags(): Promise<string[]> {
+    this.ensureInitialized();
+    const activeTodos = this.todos.filter(t => !t.archived);
+    const allTags = activeTodos.flatMap(t => t.tags);
+    return [...new Set(allTags)].sort();
+  }
+
+  /**
+   * Get distinct assignees
+   */
+  async getAssignees(): Promise<string[]> {
+    this.ensureInitialized();
+    const activeTodos = this.todos.filter(t => !t.archived);
+    return [...new Set(
+      activeTodos
+        .map(t => t.assignee)
+        .filter((a): a is string => a !== undefined)
+    )].sort();
+  }
+
+  /**
+   * Get all priorities (from enum)
+   */
+  async getPriorities(): Promise<Todo['priority'][]> {
+    return ['urgent', 'high', 'medium', 'low'];
+  }
+
+  /**
+   * Get filter options (distinct values for projects, tags, assignees, priorities)
+   * This is a combined method that calls all atomic methods
+   */
+  async getFilterOptions(): Promise<{
+    projects: string[];
+    tags: string[];
+    assignees: string[];
+    priorities: Todo['priority'][];
+  }> {
+    return {
+      projects: await this.getProjects(),
+      tags: await this.getTags(),
+      assignees: await this.getAssignees(),
+      priorities: await this.getPriorities()
+    };
+  }
 }

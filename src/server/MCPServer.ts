@@ -331,6 +331,46 @@ export class MCPServer {
           },
           required: ['todos']
         }
+      },
+      {
+        name: 'get_projects',
+        description: 'Get list of distinct projects',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'get_tags',
+        description: 'Get list of distinct tags',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'get_assignees',
+        description: 'Get list of distinct assignees',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'get_priorities',
+        description: 'Get list of all priorities',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'get_filter_options',
+        description: 'Get all filter options (projects, tags, assignees, priorities) in one call',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
       }
     ];
   }
@@ -365,6 +405,16 @@ export class MCPServer {
           return await this.handleGetHistory(args);
         case 'batch_create_todos':
           return await this.handleBatchCreateTodos(args);
+        case 'get_projects':
+          return await this.handleGetProjects(args);
+        case 'get_tags':
+          return await this.handleGetTags(args);
+        case 'get_assignees':
+          return await this.handleGetAssignees(args);
+        case 'get_priorities':
+          return await this.handleGetPriorities(args);
+        case 'get_filter_options':
+          return await this.handleGetFilterOptions(args);
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -733,5 +783,79 @@ export class MCPServer {
       // Rollback is handled by createBatch method
       throw new Error(`Batch creation failed: ${error.message}`);
     }
+  }
+
+  private async handleGetProjects(_args: any) {
+    const projects = await this.todoRepo.getProjects();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          projects,
+          count: projects.length
+        }, null, 2)
+      }]
+    };
+  }
+
+  private async handleGetTags(_args: any) {
+    const tags = await this.todoRepo.getTags();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          tags,
+          count: tags.length
+        }, null, 2)
+      }]
+    };
+  }
+
+  private async handleGetAssignees(_args: any) {
+    const assignees = await this.todoRepo.getAssignees();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          assignees,
+          count: assignees.length
+        }, null, 2)
+      }]
+    };
+  }
+
+  private async handleGetPriorities(_args: any) {
+    const priorities = await this.todoRepo.getPriorities();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          priorities,
+          count: priorities.length
+        }, null, 2)
+      }]
+    };
+  }
+
+  private async handleGetFilterOptions(_args: any) {
+    const options = await this.todoRepo.getFilterOptions();
+
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({
+          success: true,
+          ...options
+        }, null, 2)
+      }]
+    };
   }
 }

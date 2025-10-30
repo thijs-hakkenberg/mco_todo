@@ -1,10 +1,44 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { todoStore } from '../stores/todos.svelte';
 
-  const projects = ['all', 'frontend', 'backend', 'mobile', 'infrastructure'];
-  const priorities = ['all', 'urgent', 'high', 'medium', 'low'];
-  const tags = ['all', 'bug', 'feature', 'auth', 'docs', 'api', 'ui', 'design', 'backend', 'refactor', 'testing', 'devops', 'deployment'];
-  const assignees = ['all', 'unassigned', 'me', 'team'];
+  // Filter options state
+  let filterOptions = $state<{
+    projects: string[];
+    tags: string[];
+    assignees: string[];
+    priorities: string[];
+  }>({
+    projects: [],
+    tags: [],
+    assignees: [],
+    priorities: []
+  });
+
+  // Derived filter arrays with 'all' prepended
+  const projects = $derived(['all', ...filterOptions.projects]);
+  const priorities = $derived(['all', ...filterOptions.priorities]);
+  const tags = $derived(['all', ...filterOptions.tags]);
+  const assignees = $derived(['all', 'unassigned', ...filterOptions.assignees]);
+
+  onMount(async () => {
+    // Fetch filter options from API
+    try {
+      const response = await fetch('/api/todos/filter-options');
+      const data = await response.json();
+
+      if (data.success) {
+        filterOptions = {
+          projects: data.projects || [],
+          tags: data.tags || [],
+          assignees: data.assignees || [],
+          priorities: data.priorities || []
+        };
+      }
+    } catch (error) {
+      console.error('Failed to load filter options:', error);
+    }
+  });
 
   function handleProjectFilter(project: string) {
     todoStore.setProjectFilter(project);

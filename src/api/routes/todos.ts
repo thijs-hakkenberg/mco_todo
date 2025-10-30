@@ -49,6 +49,16 @@ export function createTodoRoutes(mcpClient: MCPClient): Router {
     }
   });
 
+  // Get filter options (projects, tags, assignees, priorities)
+  router.get('/filter-options', async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const result = await mcpClient.callTool('get_filter_options', {});
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get single todo
   router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     try {
