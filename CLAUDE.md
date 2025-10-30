@@ -4,106 +4,231 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Git-Based MCP Todo Server - A Model Context Protocol server for managing todos with Git version control. **Currently ~20% complete** with only documentation and structure in place - no actual implementation code exists yet.
+Git-Based MCP Todo Server - A fully implemented Model Context Protocol server for managing todos with Git version control. The project includes:
+- Complete MCP server for Claude Desktop and Claude Code integration
+- Full-stack web-based Kanban board with Svelte 5 frontend
+- Express API server bridging web UI and MCP server
+- Comprehensive test coverage (~94% overall, 100% for web components)
 
 ## Development Commands
 
 ```bash
 # Install dependencies
-npm install
+npm install                     # Backend dependencies
+cd web && npm install          # Frontend dependencies
 
-# Build TypeScript to JavaScript
-npm run build
+# Build
+npm run build                  # Build MCP server
 
-# Watch mode for development
-npm run watch
+# Run MCP server (for Claude Desktop/Code)
+npm start                      # Start MCP server
 
-# Run tests (none exist yet)
-npm test
+# Run API server + Web UI
+npm run dev:api                # Start API server in watch mode
+cd web && npm run dev          # Start Vite dev server
+
+# Or run both concurrently
+npm run dev                    # Runs both API server and MCP server
+
+# Run tests
+npm test                       # All tests
+npm run test:unit              # Unit tests
+npm run test:integration       # Integration tests
+npm run test:api               # API server tests
+cd web && npm test             # Frontend tests
 ```
 
 ## Architecture
 
-The project follows a layered architecture:
+The project has two main interfaces:
 
-1. **MCP Server** (`src/index.ts`) - Handles MCP protocol via stdio, registers tools, routes requests
-2. **TodoManager** (`src/todoManager.ts`) - CRUD operations, validation, filtering
-3. **GitHandler** (`src/gitHandler.ts`) - Git operations, commits, history
-4. **Types** (`src/types.ts`) - TypeScript interfaces and type definitions
+### 1. MCP Interface (Claude Desktop/Claude Code)
+```
+Claude Desktop ←→ MCP Server (stdio) ←→ TodoRepository ←→ GitManager ←→ Git Repo
+```
 
-Data flows from MCP Client → Server → TodoManager → GitHandler → File System/Git.
+Layers:
+1. **MCP Server** (`src/index.ts`, `src/server/MCPServer.ts`) - Handles MCP protocol via stdio
+2. **TodoRepository** (`src/data/TodoRepository.ts`) - Todo CRUD operations
+3. **GitManager** (`src/git/GitManager.ts`) - Git operations and commits
+4. **ConflictResolver** (`src/git/ConflictResolver.ts`) - Last-Write-Wins merge strategy
+5. **SyncManager** (`src/git/SyncManager.ts`) - Auto-sync with remote repository
 
-## MCP Tools to Implement
+### 2. Web Interface (Kanban Board)
+```
+Browser ←→ Vite Dev Server ←→ API Server (Express) ←→ MCP Client (stdio) ←→ MCP Server ←→ Git Repo
+```
 
-- `create_todo` - Create todo with title, description, priority, tags
-- `list_todos` - List with optional filters (status, priority, tags)
+Layers:
+1. **Frontend** (`web/src/`) - Svelte 5 with Runes-based reactive state
+   - Components: KanbanBoard, KanbanColumn, TodoCard, FilterBar
+   - Stores: todos.svelte.ts (reactive state management)
+2. **API Server** (`src/api/server.ts`) - Express REST API
+3. **MCP Client** (`src/api/mcpClient.ts`) - Stdio communication with MCP server
+4. **MCP Server** - Reuses the same server as Claude Desktop
+
+Both interfaces share the same Git repository for data storage.
+
+## Implemented MCP Tools
+
+All tools are fully implemented and tested:
+
+- `create_todo` - Create todo with text, project, priority, tags, assignee, etc.
+- `batch_create_todos` - Create multiple todos in a single operation with optional hierarchy
+- `list_todos` - List with optional filters (status, priority, tags, project, assignee)
+- `get_todo` - Get a single todo by ID
 - `update_todo` - Update existing todo properties
-- `delete_todo` - Delete by ID
-- `get_todo_history` - Get Git history for a todo
+- `delete_todo` - Delete (archive) a todo by ID
+- `complete_todo` - Mark a todo as done
+- `add_comment` - Add a comment to a todo
+- `search_todos` - Full-text search across todos
+- `get_stats` - Get statistics (total, by status, completion rate)
+- `sync_repository` - Manually trigger Git sync
+- `get_history` - Get Git commit history for todos
 
 ## Critical Implementation Notes
 
-1. **Empty Source Files**: All files in `src/` contain only placeholder comments - complete implementation needed
-2. **Module System**: Uses ES modules (`type: "module"` in package.json) - use ESM import/export syntax
-3. **Git Integration**: Each todo operation should create a Git commit for audit trail
-4. **MCP Protocol**: Use `@modelcontextprotocol/sdk` with stdio transport
-5. **Data Storage**: Todos stored in JSON file tracked by Git (default: `todos.json`)
+1. **Fully Implemented**: All core functionality is complete with comprehensive tests
+2. **Module System**: Backend uses CommonJS (`type: "commonjs"`), frontend uses ES modules
+3. **Git Integration**: Each todo operation creates a Git commit for complete audit trail
+4. **MCP Protocol**: Uses `@modelcontextprotocol/sdk` v1.20.2 with stdio transport
+5. **Data Storage**: Todos stored in `todos.json` tracked by Git with Last-Write-Wins conflict resolution
+6. **Dual Interfaces**: Same data accessible via MCP (Claude) and Web UI (browser)
+7. **Environment Variables**: API server uses same variables as Claude Desktop for consistency
 
 ## Todo Data Model
 
 ```typescript
 interface Todo {
-  id: string;                          // Generate UUID
-  title: string;                       // Required
-  description?: string;
-  status: 'pending' | 'completed';     // Default: 'pending'
-  priority: 'low' | 'medium' | 'high'; // Default: 'medium'
+  id: string;                                    // UUIDv7
+  text: string;                                  // Required
+  project: string;                               // Required
+  status: 'todo' | 'in-progress' | 'blocked' | 'done';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
   tags: string[];
-  createdAt: string;                   // ISO8601
-  updatedAt: string;                   // ISO8601
+  assignee?: string;
+  createdBy?: string;
+  createdAt: string;                             // ISO8601
+  modifiedAt: string;                            // ISO8601
+  dueDate?: string;                              // ISO8601
+  completedAt?: string;                          // ISO8601
+  description?: string;
+  dependencies?: string[];                       // Todo IDs
+  subtasks?: Subtask[];
+  comments?: Comment[];
+  fieldTimestamps: Record<string, string>;       // For conflict resolution
+}
+
+interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+interface Comment {
+  id: string;
+  user: string;
+  text: string;
+  timestamp: string;
 }
 ```
 
 ## Environment Configuration
 
-Required environment variables when running:
-- `TODO_REPO_PATH` - Path to Git repository for storing todos
-- `TODO_FILE_NAME` - (optional, default: "todos.json")
-- `TODO_BRANCH` - (optional, default: "main")
+### For MCP Server (Claude Desktop/Code)
+- `TODO_REPO_PATH` - Path to Git repository for storing todos (required)
+- `TODO_REPO_URL` - Remote Git repository URL (optional, for sync)
+- `GIT_USER_NAME` - Git user name for commits (required)
+- `GIT_USER_EMAIL` - Git user email for commits (required)
+- `AUTO_SYNC` - Enable automatic sync (true/false, default: false)
+- `SYNC_INTERVAL_SECONDS` - Sync interval in seconds (default: 300)
 
-## Implementation Priorities
+### For API Server (Web UI)
+Uses the same variables as MCP server, plus:
+- `PORT` - API server port (default: 3001)
+- `CORS_ORIGIN` - CORS origin for web frontend (default: http://localhost:5173)
+- `NODE_ENV` - Environment mode (development/production)
 
-1. **First**: Implement types in `src/types.ts`
-2. **Second**: Implement Git operations in `src/gitHandler.ts`
-3. **Third**: Implement todo CRUD in `src/todoManager.ts`
-4. **Fourth**: Wire up MCP server in `src/index.ts`
-5. **Fifth**: Add tests in `tests/`
+## Implementation Status
+
+All components are fully implemented:
+
+1. ✅ **Core Types**: Complete type definitions with Zod validation
+2. ✅ **Git Operations**: Full Git integration with LWW conflict resolution
+3. ✅ **Todo CRUD**: Complete TodoRepository with all operations
+4. ✅ **MCP Server**: Full MCP protocol implementation with all tools
+5. ✅ **Tests**: Comprehensive test coverage (~94%)
+6. ✅ **API Server**: Express server bridging web UI and MCP
+7. ✅ **Web Frontend**: Full Svelte 5 kanban board implementation
 
 ## Testing Approach
 
-- Use Jest with ts-jest for TypeScript support
+### Backend Tests (Jest)
+- Jest with ts-jest for TypeScript support
 - Mock Git operations and file system for unit tests
 - Use temporary Git repos for integration tests
 - Test error conditions and edge cases
+- Supertest for API endpoint testing
+
+### Frontend Tests (Vitest)
+- Vitest with jsdom environment
+- Svelte Testing Library for component tests
+- Mock API calls with fetch mocks
+- Test user interactions and drag-and-drop
+- Coverage thresholds: 80% across all metrics
 
 ## Key Dependencies
 
-- `@modelcontextprotocol/sdk` (v0.5.0) - MCP protocol
-- `simple-git` (v3.27.0) - Git operations
-- TypeScript configured for ES2022 modules
-- Jest for testing (with experimental VM modules)
+### Backend
+- `@modelcontextprotocol/sdk` (v1.20.2) - MCP protocol
+- `simple-git` (v3.28.0) - Git operations
+- `express` (v5.1.0) - API server
+- `zod` (v3.25.76) - Schema validation
+- `uuidv7` (v1.0.2) - UUID generation
+- `date-fns` (v4.1.0) - Date utilities
+- TypeScript with CommonJS modules
+- Jest with ts-jest for testing
+
+### Frontend
+- `svelte` (v5.39.6) - UI framework with Runes
+- `vite` (v7.1.7) - Build tool and dev server
+- `tailwindcss` (v4.1.16) - CSS framework
+- `axios` (v1.13.1) - HTTP client
+- `svelte-dnd-action` (v0.9.65) - Drag-and-drop
+- TypeScript with ES modules
+- Vitest for testing
 
 ## Common Pitfalls to Avoid
 
-1. Remember to initialize Git repo at `TODO_REPO_PATH` if it doesn't exist
-2. Handle concurrent modifications gracefully
+### General
+1. Ensure Git repo is initialized at `TODO_REPO_PATH` before running
+2. Set all required environment variables (TODO_REPO_PATH, GIT_USER_NAME, GIT_USER_EMAIL)
 3. Validate all user input before processing
-4. Ensure proper error handling with MCP-compliant error responses
-5. Use async/await for all Git and file operations
-6. Remember to commit changes after each todo modification
+4. Use async/await for all Git and file operations
+5. Handle concurrent modifications with LWW conflict resolution
+
+### MCP Server
+1. Ensure proper error handling with MCP-compliant error responses
+2. Remember to commit changes after each todo modification
+3. Test with stdio communication (not HTTP)
+
+### API Server
+1. Build MCP server (`npm run build`) before starting API server
+2. Ensure API server and web frontend use same `TODO_REPO_PATH`
+3. Configure CORS properly for production deployments
+4. Handle MCP server connection failures gracefully
+
+### Web Frontend
+1. Run `npm install` in both root and `web/` directories
+2. Start API server before starting web dev server
+3. Use optimistic updates with rollback on errors
+4. Test drag-and-drop functionality across different browsers
 
 ## References
 
-- Full API specification: `docs/API.md`
-- Detailed architecture: `docs/ARCHITECTURE.md`
-- Implementation status: `IMPLEMENTATION_STATUS.md`
+- **Main Documentation**: `README.md` - Complete user guide and setup instructions
+- **Changelog**: `CHANGELOG.md` - Version history and release notes
+- **API Documentation**: REST API endpoints in `src/api/routes/todos.ts`
+- **MCP Tools**: MCP tool definitions in `src/server/MCPServer.ts`
+- **Type Definitions**: `src/types/Todo.ts` - Complete data model
+- **Web Components**: `web/src/lib/components/` - Svelte component implementations

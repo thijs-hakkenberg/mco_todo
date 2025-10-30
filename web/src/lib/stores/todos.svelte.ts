@@ -17,7 +17,7 @@ class TodoStore {
   error = $state<string | null>(null);
 
   // Derived state using $derived rune
-  get filteredTodos() {
+  filteredTodos = $derived.by(() => {
     let filtered = [...this.todos];
 
     // Search filter
@@ -62,9 +62,9 @@ class TodoStore {
     }
 
     return filtered;
-  }
+  });
 
-  get columnTodos() {
+  columnTodos = $derived.by(() => {
     const filtered = this.filteredTodos;
     return {
       'todo': filtered.filter(t => t.status === 'todo'),
@@ -72,9 +72,9 @@ class TodoStore {
       'blocked': filtered.filter(t => t.status === 'blocked'),
       'done': filtered.filter(t => t.status === 'done')
     };
-  }
+  });
 
-  get statistics() {
+  statistics = $derived.by(() => {
     const total = this.todos.length;
     const byStatus = {
       'todo': this.todos.filter(t => t.status === 'todo').length,
@@ -91,30 +91,37 @@ class TodoStore {
       byStatus,
       completionRate
     };
-  }
+  });
 
   // API Methods
   async loadTodos(): Promise<void> {
+    console.log('[TodoStore] loadTodos called');
     this.loading = true;
     this.error = null;
 
     try {
+      console.log('[TodoStore] Fetching from /api/todos');
       const response = await fetch('/api/todos');
+      console.log('[TodoStore] Response status:', response.status);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
+      console.log('[TodoStore] Data received:', { success: data.success, count: data.todos?.length });
 
       if (data.success) {
         this.todos = data.todos;
+        console.log('[TodoStore] Todos set to:', this.todos.length, 'items');
       } else {
         throw new Error(data.error || 'Failed to load todos');
       }
     } catch (error: any) {
       this.error = `Failed to load todos: ${error.message}`;
-      console.error('Error loading todos:', error);
+      console.error('[TodoStore] Error loading todos:', error);
     } finally {
       this.loading = false;
+      console.log('[TodoStore] Loading complete. Total todos:', this.todos.length);
     }
   }
 

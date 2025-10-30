@@ -5,15 +5,28 @@
   import FilterBar from './FilterBar.svelte';
   import KanbanColumn from './KanbanColumn.svelte';
 
-  export let allowColumnReorder: boolean = false;
-  export let readOnly: boolean = false;
+  let { allowColumnReorder = false, readOnly = false } = $props<{
+    allowColumnReorder?: boolean;
+    readOnly?: boolean;
+  }>();
 
   let selectedTodo: Todo | null = null;
   let showAddModal = false;
   let addModalStatus: Todo['status'] = 'todo';
 
   onMount(() => {
+    console.log('[KanbanBoard] onMount - calling loadTodos');
     todoStore.loadTodos();
+  });
+
+  // Debug reactive values
+  $effect(() => {
+    console.log('[KanbanBoard] Reactive update:', {
+      todosLength: todoStore.todos.length,
+      statisticsTotal: todoStore.statistics.total,
+      columnTodosKeys: Object.keys(todoStore.columnTodos),
+      loading: todoStore.loading
+    });
   });
 
   async function handleDrop(event: { todoId: string; targetStatus: Todo['status'] }) {

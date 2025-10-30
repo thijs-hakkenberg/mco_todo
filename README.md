@@ -9,13 +9,24 @@ A Model Context Protocol (MCP) server that uses Git as the backend for a collabo
 - **Conflict Resolution**: Automatic Last-Write-Wins (LWW) merge strategy for concurrent edits
 - **Auto-Sync**: Optional automatic synchronization with remote repository
 - **Rich Todo Features**: Priority levels, projects, tags, assignees, due dates, comments, and more
-- **MCP Integration**: Works seamlessly with Claude Desktop
+- **MCP Integration**: Works seamlessly with Claude Desktop and Claude Code
+- **Web-Based Kanban Board**: Interactive Svelte 5 UI with drag-and-drop, filtering, and real-time updates
 
 ## Architecture
 
+### MCP Integration (Claude Desktop/Claude Code)
 ```
 Claude Desktop ←→ MCP Server (Node.js) ←→ Local Git Repo ←→ Remote Git (GitHub/GitLab)
 ```
+
+### Web-Based Kanban Board
+```
+Web Browser (Svelte) ←→ API Server (Express) ←→ MCP Server (Node.js) ←→ Local Git Repo ←→ Remote Git
+```
+
+The system provides two interfaces:
+1. **MCP Interface**: Direct integration with Claude Desktop and Claude Code via stdio
+2. **Web Interface**: Browser-based kanban board via REST API
 
 ## Installation
 
@@ -106,9 +117,143 @@ Add to your `.claude/config.json` file in your project directory:
 }
 ```
 
-Alternatively, you can run `claude mcp add git-todo` to add it interactively. 
+Alternatively, you can run `claude mcp add git-todo` to add it interactively.
 
 **Note**: Replace `/absolute/path/to/our_todo` with the actual path to this repository on your system, and update the environment variables with your specific configuration.
+
+## Running the Web-Based Kanban Board
+
+The kanban board provides a visual interface for managing todos with drag-and-drop functionality, inline filtering, and real-time statistics.
+
+### Architecture
+
+The kanban board consists of two components:
+1. **API Server** (Express): Bridges the web frontend and MCP server
+2. **Web Frontend** (Svelte 5): Interactive kanban board UI
+
+### Quick Start (Recommended)
+
+Use the provided startup scripts for the easiest experience:
+
+```bash
+# Terminal 1: Start backend
+./start-backend.sh
+
+# Terminal 2: Start frontend
+./start-frontend.sh
+```
+
+Then open http://localhost:5173 in your browser.
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed instructions and troubleshooting.
+
+### Manual Setup and Running
+
+1. Install dependencies for both backend and frontend:
+```bash
+# Install backend dependencies (if not already done)
+npm install
+
+# Install frontend dependencies
+cd web
+npm install
+cd ..
+```
+
+2. Build the MCP server:
+```bash
+npm run build
+```
+
+3. Start the API server:
+```bash
+# Using the same environment variables as Claude Desktop
+export TODO_REPO_PATH="/Users/you/my-todos"
+export TODO_REPO_URL="https://github.com/you/my-todos.git"
+export GIT_USER_NAME="Your Name"
+export GIT_USER_EMAIL="you@example.com"
+
+# Start the API server (runs on port 3001)
+npm run start:api
+```
+
+4. In a separate terminal, start the web frontend:
+```bash
+cd web
+npm run dev
+```
+
+5. Open your browser to `http://localhost:5173`
+
+### Environment Variables for API Server
+
+The API server uses the **same environment variables** as Claude Desktop/Claude Code:
+
+- `TODO_REPO_PATH`: Path to local Git repository (default: `~/my-todos`)
+- `TODO_REPO_URL`: Remote Git repository URL (optional)
+- `GIT_USER_NAME`: Git user name for commits
+- `GIT_USER_EMAIL`: Git user email for commits
+- `PORT`: API server port (default: 3001)
+- `CORS_ORIGIN`: CORS origin for web frontend (default: `http://localhost:5173`)
+- `NODE_ENV`: Environment mode (development/production)
+
+### Development Mode
+
+For development with auto-reload:
+
+```bash
+# Terminal 1: Start API server in watch mode
+npm run dev:api
+
+# Terminal 2: Start web frontend in dev mode
+cd web
+npm run dev
+```
+
+### Production Build
+
+1. Build both backend and frontend:
+```bash
+# Build backend
+npm run build
+
+# Build frontend
+cd web
+npm run build
+cd ..
+```
+
+2. Serve the production build:
+```bash
+# Start API server
+npm run start:api
+
+# In another terminal, preview the built frontend
+cd web
+npm run preview
+```
+
+### Kanban Board Features
+
+- **Four Columns**: To Do, In Progress, Blocked, Done
+- **Drag-and-Drop**: Move todos between columns to change status
+- **Inline Filters**: Filter by search text, project, priority, tags, and assignee
+- **Active Filters Display**: See all active filters with individual clear buttons
+- **Statistics**: Real-time completion rates and status breakdown
+- **Add Todos**: Create new todos directly from the board
+- **Priority Colors**: Visual indicators for low, medium, high, and urgent priorities
+- **Responsive Design**: Works on desktop and mobile devices
+
+### Sharing the Same Todo Repository
+
+The API server connects to the same Git repository as your Claude Desktop/Claude Code MCP server. This means:
+
+- Todos created in Claude Desktop appear in the kanban board
+- Todos created in the kanban board appear in Claude Desktop
+- Both interfaces share the same Git history and version control
+- Conflicts are automatically resolved using Last-Write-Wins strategy
+
+Simply ensure both the MCP server (Claude Desktop config) and the API server use the same `TODO_REPO_PATH`.
 
 ## Configuration
 
@@ -123,9 +268,14 @@ Alternatively, you can run `claude mcp add git-todo` to add it interactively.
 
 ## Usage
 
-Once configured, you can interact with your todos through Claude Desktop or Claude Code:
+You can interact with your todos in two ways:
 
-### Available Commands
+1. **Through Claude Desktop or Claude Code** using natural language
+2. **Through the Web-Based Kanban Board** using a visual interface
+
+### MCP Commands (Claude Desktop/Claude Code)
+
+Once configured, you can use natural language commands in Claude:
 
 - **List todos**: "Show me my todos"
 - **Create todo**: "Add a todo: Implement user authentication"
@@ -221,6 +371,11 @@ npm run test:watch
 │   ├── index.ts                 # MCP server entry point
 │   ├── server/
 │   │   └── MCPServer.ts         # MCP tool handlers
+│   ├── api/                     # API server for web interface
+│   │   ├── server.ts            # Express server
+│   │   ├── mcpClient.ts         # MCP client for stdio communication
+│   │   └── routes/
+│   │       └── todos.ts         # Todo REST API endpoints
 │   ├── git/
 │   │   ├── GitManager.ts        # Git operations
 │   │   ├── ConflictResolver.ts  # LWW merge logic
@@ -229,6 +384,22 @@ npm run test:watch
 │   │   └── TodoRepository.ts    # Todo CRUD operations
 │   └── types/
 │       └── Todo.ts              # Todo types and validation
+├── web/                         # Svelte 5 web frontend
+│   ├── src/
+│   │   ├── lib/
+│   │   │   ├── components/      # Svelte components
+│   │   │   │   ├── KanbanBoard.svelte
+│   │   │   │   ├── KanbanColumn.svelte
+│   │   │   │   ├── TodoCard.svelte
+│   │   │   │   └── FilterBar.svelte
+│   │   │   ├── stores/          # Svelte stores
+│   │   │   │   └── todos.svelte.ts
+│   │   │   └── types/           # TypeScript types
+│   │   │       └── Todo.ts
+│   │   ├── App.svelte           # Main app component
+│   │   └── main.ts              # App entry point
+│   ├── package.json
+│   └── vite.config.ts           # Vite configuration
 ├── tests/
 │   ├── unit/                    # Unit tests
 │   └── integration/             # Integration tests
@@ -246,8 +417,35 @@ Current test coverage: ~94%
 - TodoRepository: 100%
 - SyncManager: 70% (timing-related test issues)
 - MCPServer: 56% (partial implementation)
+- API Server: 100%
+- MCP Client: 100%
+- Svelte Components: 100% (KanbanBoard, KanbanColumn, TodoCard, FilterBar)
+- Todo Store: 100%
 
 ## Troubleshooting
+
+### Kanban Board Issues
+
+**API Server not connecting to MCP server**
+- Ensure the MCP server is built: `npm run build`
+- Check that `dist/index.js` exists
+- Verify environment variables are set correctly
+- Check API server logs for errors
+
+**Web frontend can't connect to API**
+- Ensure API server is running on port 3001
+- Check CORS settings if running on different ports
+- Verify the Vite proxy configuration in `web/vite.config.ts`
+
+**Port already in use**
+- Change the port: `PORT=3002 npm run start:api`
+- Update CORS_ORIGIN if needed: `CORS_ORIGIN=http://localhost:5173`
+- Kill the process using the port: `lsof -ti:3001 | xargs kill`
+
+**Todos not syncing between interfaces**
+- Ensure both Claude Desktop config and API server use the same `TODO_REPO_PATH`
+- Check that the Git repository exists at the specified path
+- Verify file permissions on the todo repository
 
 ### Sync Failures
 
@@ -265,7 +463,13 @@ Ensure the MCP server has read/write access to:
 
 ### Debug Mode
 
-View server logs in Claude Desktop's developer console or check stderr output.
+**MCP Server (Claude Desktop)**
+- View server logs in Claude Desktop's developer console or check stderr output
+
+**API Server**
+- Set `NODE_ENV=development` for detailed logging
+- Check console output for request logs and errors
+- Use browser DevTools Network tab to inspect API calls
 
 ## Contributing
 
