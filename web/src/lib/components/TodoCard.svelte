@@ -1,10 +1,18 @@
 <script lang="ts">
   import type { Todo } from '../types/Todo';
 
-  export let todo: Todo;
-  export let draggable: boolean = true;
-  export let progress: number = 0;
-  export let onclick: ((todo: Todo) => void) | undefined = undefined;
+  // Svelte 5 runes mode: use $props() instead of export let
+  let {
+    todo,
+    draggable = true,
+    progress = 0,
+    onclick = undefined
+  }: {
+    todo: Todo;
+    draggable?: boolean;
+    progress?: number;
+    onclick?: (todo: Todo) => void;
+  } = $props();
 
   function handleClick() {
     onclick?.(todo);

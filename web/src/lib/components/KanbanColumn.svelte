@@ -2,14 +2,24 @@
   import type { Todo } from '../types/Todo';
   import TodoCard from './TodoCard.svelte';
 
-  export let title: string;
-  export let status: Todo['status'];
-  export let todos: Todo[] = [];
-  export let ondrop: ((event: { todoId: string; targetStatus: Todo['status'] }) => void) | undefined = undefined;
-  export let ontodoclick: ((todo: Todo) => void) | undefined = undefined;
-  export let onaddtodo: ((status: Todo['status']) => void) | undefined = undefined;
+  // Svelte 5 runes mode: use $props() instead of export let
+  let {
+    title,
+    status,
+    todos = [],
+    ondrop = undefined,
+    ontodoclick = undefined,
+    onaddtodo = undefined
+  }: {
+    title: string;
+    status: Todo['status'];
+    todos?: Todo[];
+    ondrop?: (event: { todoId: string; targetStatus: Todo['status'] }) => void;
+    ontodoclick?: (todo: Todo) => void;
+    onaddtodo?: (status: Todo['status']) => void;
+  } = $props();
 
-  let isDragOver = false;
+  let isDragOver = $state(false);
 
   function handleDragOver(event: DragEvent) {
     event.preventDefault();
