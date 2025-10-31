@@ -1,8 +1,22 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelteTesting } from '@testing-library/svelte/vite';
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [
+    svelte({
+      hot: false,
+      compilerOptions: {
+        // Svelte 5 auto-detects runes, but we can be explicit
+        runes: true
+      }
+    }),
+    svelteTesting()
+  ],
+  // Browser resolution conditions for Svelte 5 runes in tests
+  resolve: process.env.VITEST ? {
+    conditions: ['browser']
+  } : undefined,
   test: {
     include: ['src/**/*.test.ts'],
     environment: 'jsdom',
