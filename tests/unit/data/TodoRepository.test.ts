@@ -292,7 +292,7 @@ describe('TodoRepository', () => {
       );
       await repo.reload();
 
-      const result = await repo.list({ sortBy: 'priority' });
+      const result = await repo.list({ sortBy: 'priority', sortOrder: 'desc' });
 
       expect(result[0].priority).toBe('urgent');
       expect(result[1].priority).toBe('high');

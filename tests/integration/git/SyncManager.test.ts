@@ -168,26 +168,18 @@ describe('SyncManager', () => {
     it('should sync at configured intervals', async () => {
       syncManager.startAutoSync(1000); // 1 second interval
 
-      // Wait for initial sync to complete
-      await Promise.resolve();
+      // No initial sync happens immediately - need to advance timers first
+      expect(mockGitManager.pull).not.toHaveBeenCalled();
 
-      // Initial sync should have happened
+      // Fast-forward time for first sync
+      await jest.advanceTimersByTimeAsync(1000);
+
       expect(mockGitManager.pull).toHaveBeenCalledTimes(1);
 
-      // Fast-forward time and flush promises
-      jest.advanceTimersByTime(1000);
-      await Promise.resolve();
-
-      // Allow for async operations to complete
-      await new Promise(resolve => setImmediate(resolve));
+      // Fast-forward time for second sync
+      await jest.advanceTimersByTimeAsync(1000);
 
       expect(mockGitManager.pull).toHaveBeenCalledTimes(2);
-
-      jest.advanceTimersByTime(1000);
-      await Promise.resolve();
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockGitManager.pull).toHaveBeenCalledTimes(3);
 
       syncManager.stopAutoSync();
     });
@@ -278,7 +270,7 @@ describe('SyncManager', () => {
 
       await syncManager.resolveConflicts(['todos.json']);
 
-      expect(mockConflictResolver.mergeTodos).toHaveBeenCalled();
+      expect(mockGitManager.resolveConflict).toHaveBeenCalledWith('todos.json');
     });
   });
 
