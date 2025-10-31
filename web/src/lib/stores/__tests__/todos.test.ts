@@ -20,9 +20,9 @@ describe('TodoStore with Svelte 5 Runes', () => {
     it('should initialize with default filters', () => {
       expect(todoStore.filters).toEqual({
         search: '',
-        project: 'all',
+        projects: [],
         priority: 'all',
-        tags: new Set(['all']),
+        tags: [],
         assignee: 'all'
       });
     });
@@ -414,9 +414,9 @@ describe('TodoStore with Svelte 5 Runes', () => {
 
       expect(todoStore.filters).toEqual({
         search: '',
-        project: 'all',
+        projects: [],
         priority: 'all',
-        tags: new Set(['all']),
+        tags: [],
         assignee: 'all'
       });
     });

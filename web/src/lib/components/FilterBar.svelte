@@ -73,6 +73,11 @@
     if (searchInput) searchInput.value = '';
   }
 
+  function handleIncludeCompletedToggle(event: Event) {
+    const target = event.target as HTMLInputElement;
+    todoStore.setIncludeCompletedFilter(target.checked);
+  }
+
   const hasActiveFilters = $derived(
     todoStore.filters.search !== '' ||
     todoStore.filters.projects.length > 0 ||
@@ -100,6 +105,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
         </div>
+        <label class="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+          <input
+            type="checkbox"
+            checked={todoStore.filters.includeCompleted}
+            on:change={handleIncludeCompletedToggle}
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <span class="text-sm text-gray-700">Show completed</span>
+        </label>
         <button
           id="clearFilters"
           on:click={clearAllFilters}

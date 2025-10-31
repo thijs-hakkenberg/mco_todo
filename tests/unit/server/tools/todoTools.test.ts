@@ -235,6 +235,221 @@ describe('Todo MCP Tools', () => {
       expect(response.todos).toEqual([]);
       expect(response.count).toBe(0);
     });
+
+    // TDD Phase RED: New tests for field selection
+    it('should accept mode parameter for field selection', async () => {
+      const todos = [
+        createTodo({
+          text: 'Test todo',
+          status: 'todo',
+          project: 'work',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        mode: 'minimal'
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        mode: 'minimal'
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+      expect(response.todos).toHaveLength(1);
+    });
+
+    it('should accept fields parameter for custom field selection', async () => {
+      const todos = [
+        createTodo({
+          text: 'Test todo',
+          status: 'todo',
+          project: 'work',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        fields: ['id', 'text', 'status']
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        fields: ['id', 'text', 'status']
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+    });
+
+    it('should accept excludeFields parameter', async () => {
+      const todos = [
+        createTodo({
+          text: 'Test todo',
+          status: 'todo',
+          project: 'work',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        excludeFields: ['comments', 'fieldTimestamps']
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        excludeFields: ['comments', 'fieldTimestamps']
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+    });
+
+    it('should accept includeCompleted parameter', async () => {
+      const todos = [
+        createTodo({
+          text: 'Active todo',
+          status: 'todo',
+          project: 'work',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        includeCompleted: false
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        includeCompleted: false
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+      expect(response.todos).toHaveLength(1);
+    });
+
+    it('should accept includeNullDates parameter', async () => {
+      const todos = [
+        createTodo({
+          text: 'Test todo',
+          status: 'todo',
+          project: 'work',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        includeNullDates: true
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        includeNullDates: true
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+    });
+
+    it('should accept sortOrder parameter (currently missing)', async () => {
+      const todos = [
+        createTodo({
+          text: 'Todo 1',
+          status: 'todo',
+          project: 'work',
+          priority: 'high',
+          createdBy: 'user-123'
+        }),
+        createTodo({
+          text: 'Todo 2',
+          status: 'todo',
+          project: 'work',
+          priority: 'low',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        sortBy: 'priority',
+        sortOrder: 'desc'
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        sortBy: 'priority',
+        sortOrder: 'desc'
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+    });
+
+    it('should accept offset parameter (currently missing)', async () => {
+      const todos = [
+        createTodo({
+          text: 'Test todo',
+          status: 'todo',
+          project: 'work',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        limit: 10,
+        offset: 5
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        limit: 10,
+        offset: 5
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+    });
+
+    it('should combine multiple filter options', async () => {
+      const todos = [
+        createTodo({
+          text: 'Active high priority todo',
+          status: 'in-progress',
+          project: 'work',
+          priority: 'high',
+          createdBy: 'user-123'
+        })
+      ];
+
+      mockTodoRepo.list.mockResolvedValue(todos);
+
+      const result = await mcpServer.handleToolCall('list_todos', {
+        mode: 'standard',
+        includeCompleted: false,
+        priority: 'high',
+        project: 'work'
+      });
+
+      expect(mockTodoRepo.list).toHaveBeenCalledWith({
+        mode: 'standard',
+        includeCompleted: false,
+        priority: 'high',
+        project: 'work'
+      });
+
+      const response = JSON.parse(result.content[0].text);
+      expect(response.success).toBe(true);
+      expect(response.todos).toHaveLength(1);
+    });
   });
 
   describe('update_todo', () => {

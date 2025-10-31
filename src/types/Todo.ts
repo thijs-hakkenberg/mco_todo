@@ -81,6 +81,17 @@ export type CreateTodoInput = {
 // Helper type for updating a todo (all fields optional except id)
 export type UpdateTodoInput = Partial<Omit<Todo, 'id' | 'createdAt' | 'createdBy' | 'fieldTimestamps'>>;
 
+// Field selection mode for filtering returned fields
+export type FieldSelectionMode = 'minimal' | 'standard' | 'full' | 'custom';
+
+// Options for field selection and projection
+export interface FieldSelectionOptions {
+  mode?: FieldSelectionMode;
+  fields?: string[];
+  excludeFields?: string[];
+  includeNullDates?: boolean;
+}
+
 /**
  * Creates a new Todo with auto-generated fields
  */

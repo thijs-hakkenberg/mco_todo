@@ -11,7 +11,8 @@ class TodoStore {
     projects: [], // Empty = all
     priority: 'all',
     tags: [], // Empty = all
-    assignee: 'all'
+    assignee: 'all',
+    includeCompleted: false // Default: hide completed todos
   });
   loading = $state(false);
   error = $state<string | null>(null);
@@ -100,8 +101,13 @@ class TodoStore {
     this.error = null;
 
     try {
-      console.log('[TodoStore] Fetching from /api/todos');
-      const response = await fetch('/api/todos');
+      // Build query parameters for field selection and filtering
+      const params = new URLSearchParams();
+      params.append('mode', 'standard'); // Use standard mode for reduced payload
+      params.append('includeCompleted', String(this.filters.includeCompleted !== false)); // Convert to API format
+
+      console.log('[TodoStore] Fetching from /api/todos with params:', params.toString());
+      const response = await fetch(`/api/todos?${params.toString()}`);
       console.log('[TodoStore] Response status:', response.status);
 
       if (!response.ok) {
@@ -313,13 +319,20 @@ class TodoStore {
     this.filters.assignee = assignee;
   }
 
+  setIncludeCompletedFilter(includeCompleted: boolean): void {
+    this.filters.includeCompleted = includeCompleted;
+    // Reload todos when this filter changes to fetch from API
+    this.loadTodos();
+  }
+
   clearFilters(): void {
     this.filters = {
       search: '',
       projects: [],
       priority: 'all',
       tags: [],
-      assignee: 'all'
+      assignee: 'all',
+      includeCompleted: false // Default: hide completed
     };
   }
 
@@ -331,7 +344,8 @@ class TodoStore {
       projects: [],
       priority: 'all',
       tags: [],
-      assignee: 'all'
+      assignee: 'all',
+      includeCompleted: false
     };
     this.loading = false;
     this.error = null;

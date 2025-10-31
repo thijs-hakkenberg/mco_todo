@@ -1,19 +1,38 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { Todo, createTodo, updateTodo, CreateTodoInput, UpdateTodoInput } from '../types/Todo';
+import {
+  Todo,
+  createTodo,
+  updateTodo,
+  CreateTodoInput,
+  UpdateTodoInput,
+  FieldSelectionMode
+} from '../types/Todo';
 import { GitManager } from '../git/GitManager';
 
 export interface ListOptions {
+  // Filtering options
   status?: Todo['status'];
   priority?: Todo['priority'];
   project?: string;
   assignee?: string;
   tags?: string[];
+  includeCompleted?: boolean;
+  includeArchived?: boolean;
+
+  // Sorting options
   sortBy?: 'priority' | 'createdAt' | 'modifiedAt' | 'dueDate';
   sortOrder?: 'asc' | 'desc';
+
+  // Pagination options
   limit?: number;
   offset?: number;
-  includeArchived?: boolean;
+
+  // Field selection options
+  mode?: FieldSelectionMode;
+  fields?: string[];
+  excludeFields?: string[];
+  includeNullDates?: boolean;
 }
 
 export interface TodoWithArchive extends Todo {
@@ -173,6 +192,12 @@ export class TodoRepository {
 
     let filtered = this.todos.filter(t => options.includeArchived || !t.archived);
 
+    // Apply includeCompleted filter (default: include all when undefined/null)
+    // But don't apply this if user explicitly requested status: 'done' (let status filter take precedence)
+    if (options.includeCompleted === false && options.status !== 'done') {
+      filtered = filtered.filter(t => t.status !== 'done');
+    }
+
     // Apply filters
     if (options.status) {
       filtered = filtered.filter(t => t.status === options.status);
@@ -204,7 +229,9 @@ export class TodoRepository {
 
         switch (options.sortBy) {
           case 'priority':
-            const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+            // Map priority to numeric values where higher number = higher priority
+            // This way: asc = least important first, desc = most important first
+            const priorityOrder = { low: 0, medium: 1, high: 2, urgent: 3 };
             aVal = priorityOrder[a.priority];
             bVal = priorityOrder[b.priority];
             break;
@@ -230,7 +257,95 @@ export class TodoRepository {
       filtered = filtered.slice(start, end);
     }
 
-    return filtered;
+    // Apply field projection
+    const projected = filtered.map(todo => this.projectFields(todo, options));
+
+    return projected as Todo[];
+  }
+
+  /**
+   * Project (select) fields from a todo based on options
+   * @private
+   */
+  private projectFields(todo: Todo, options: ListOptions): Partial<Todo> {
+    // If no field selection options, return full todo (backward compatibility)
+    if (!options.mode && !options.fields && !options.excludeFields) {
+      return todo;
+    }
+
+    // Handle explicit fields selection
+    if (options.fields && options.fields.length > 0) {
+      const result: any = {};
+      for (const field of options.fields) {
+        if (field in todo) {
+          result[field] = (todo as any)[field];
+        }
+      }
+      return result;
+    }
+
+    // Handle excludeFields
+    if (options.excludeFields && options.excludeFields.length > 0) {
+      const result: any = { ...todo };
+      for (const field of options.excludeFields) {
+        delete result[field];
+      }
+      // Apply null date filtering if requested
+      if (!options.includeNullDates) {
+        if (result.dueDate === null || result.dueDate === undefined) {
+          delete result.dueDate;
+        }
+        if (result.completedAt === null || result.completedAt === undefined) {
+          delete result.completedAt;
+        }
+      }
+      return result;
+    }
+
+    // Handle mode-based field selection
+    const mode = options.mode || 'full';
+
+    switch (mode) {
+      case 'minimal':
+        return {
+          id: todo.id,
+          text: todo.text,
+          status: todo.status,
+          priority: todo.priority,
+          project: todo.project
+        };
+
+      case 'standard': {
+        const standard: any = {
+          id: todo.id,
+          text: todo.text,
+          status: todo.status,
+          priority: todo.priority,
+          project: todo.project,
+          tags: todo.tags,
+          assignee: todo.assignee,
+          createdAt: todo.createdAt,
+          modifiedAt: todo.modifiedAt
+        };
+
+        // Include dueDate only if set (unless includeNullDates is true)
+        if (todo.dueDate || options.includeNullDates) {
+          standard.dueDate = todo.dueDate;
+        }
+
+        // Include completedAt only if set (unless includeNullDates is true)
+        if (todo.completedAt || options.includeNullDates) {
+          standard.completedAt = todo.completedAt;
+        }
+
+        return standard;
+      }
+
+      case 'full':
+      default:
+        // Full mode always returns ALL fields including null dates
+        return todo;
+    }
   }
 
   /**

@@ -7,22 +7,54 @@ import { MCPClient } from '../mcpClient';
 export function createTodoRoutes(mcpClient: MCPClient): Router {
   const router = Router();
 
-  // List todos with optional filters
+  // List todos with optional filters and field selection
   router.get('/', async (req: Request, res: Response): Promise<void> => {
     try {
       const filters: any = {};
 
-      // Extract query parameters
+      // Filter parameters
       if (req.query.status) filters.status = req.query.status;
       if (req.query.priority) filters.priority = req.query.priority;
       if (req.query.project) filters.project = req.query.project;
       if (req.query.assignee) filters.assignee = req.query.assignee;
-      if (req.query.sortBy) filters.sortBy = req.query.sortBy;
-      if (req.query.limit) filters.limit = req.query.limit;
 
-      // Handle tags array
+      // includeCompleted: default to true for backward compatibility (unlike MCP tool)
+      if (req.query.includeCompleted !== undefined) {
+        filters.includeCompleted = req.query.includeCompleted === 'true';
+      }
+
+      if (req.query.includeArchived !== undefined) {
+        filters.includeArchived = req.query.includeArchived === 'true';
+      }
+
+      // Sorting parameters
+      if (req.query.sortBy) filters.sortBy = req.query.sortBy;
+      if (req.query.sortOrder) filters.sortOrder = req.query.sortOrder;
+
+      // Pagination parameters
+      if (req.query.limit) filters.limit = parseInt(req.query.limit as string);
+      if (req.query.offset) filters.offset = parseInt(req.query.offset as string);
+
+      // Field selection parameters
+      if (req.query.mode) filters.mode = req.query.mode;
+
+      if (req.query.includeNullDates !== undefined) {
+        filters.includeNullDates = req.query.includeNullDates === 'true';
+      }
+
+      // Handle array parameters
       if (req.query.tags) {
         filters.tags = Array.isArray(req.query.tags) ? req.query.tags : [req.query.tags];
+      }
+
+      if (req.query.fields) {
+        filters.fields = Array.isArray(req.query.fields) ? req.query.fields : [req.query.fields];
+      }
+
+      if (req.query.excludeFields) {
+        filters.excludeFields = Array.isArray(req.query.excludeFields)
+          ? req.query.excludeFields
+          : [req.query.excludeFields];
       }
 
       const result = await mcpClient.callTool('list_todos', filters);

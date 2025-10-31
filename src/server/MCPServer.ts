@@ -30,10 +30,11 @@ export class MCPServer {
     return [
       {
         name: 'list_todos',
-        description: 'List todos with optional filters',
+        description: 'List todos with optional filters and field selection',
         inputSchema: {
           type: 'object',
           properties: {
+            // Filter options
             status: {
               type: 'string',
               enum: ['todo', 'in-progress', 'blocked', 'done'],
@@ -57,14 +58,53 @@ export class MCPServer {
               items: { type: 'string' },
               description: 'Filter by tags'
             },
+            includeCompleted: {
+              type: 'boolean',
+              description: 'Include completed todos (default: true for MCP tool)'
+            },
+            includeArchived: {
+              type: 'boolean',
+              description: 'Include archived todos (default: false)'
+            },
+            // Sorting options
             sortBy: {
               type: 'string',
               enum: ['priority', 'createdAt', 'modifiedAt', 'dueDate'],
               description: 'Sort field'
             },
+            sortOrder: {
+              type: 'string',
+              enum: ['asc', 'desc'],
+              description: 'Sort order (default: asc)'
+            },
+            // Pagination options
             limit: {
               type: 'number',
               description: 'Maximum number of results'
+            },
+            offset: {
+              type: 'number',
+              description: 'Number of results to skip (for pagination)'
+            },
+            // Field selection options
+            mode: {
+              type: 'string',
+              enum: ['minimal', 'standard', 'full'],
+              description: 'Field selection mode: minimal (id, text, status, priority, project), standard (+ tags, assignee, dates), full (all fields)'
+            },
+            fields: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Custom field selection (include only these fields)'
+            },
+            excludeFields: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Fields to exclude from response'
+            },
+            includeNullDates: {
+              type: 'boolean',
+              description: 'Include null dueDate and completedAt fields (default: false)'
             }
           }
         }

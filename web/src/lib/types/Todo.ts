@@ -59,4 +59,5 @@ export interface TodoFilters {
   tags: string[]; // Empty array = all tags
   assignee: string;
   status?: string;
+  includeCompleted?: boolean; // Filter completed todos (default: false to hide completed)
 }

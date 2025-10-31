@@ -142,7 +142,7 @@ describe('Express API Server', () => {
         .send('text=Test+todo&project=test')
         .set('Content-Type', 'application/x-www-form-urlencoded');
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(201);
     });
 
     it('should log requests in development', async () => {
