@@ -22,7 +22,7 @@ This document outlines the next 7 high-priority tasks for the Git-Based MCP Todo
 - Update filter expectations from `project: 'all'` to `projects: []`
 - Update `tags` from `Set` to array
 - Add `includeCompleted: false` to default filters
-- Fix fetch mocking to include new query parameters (`mode`, `includeCompleted`)
+- Fix fetch mocking to include new qery parameters (`mode`, `includeCompleted`)
 
 **Acceptance Criteria**:
 - All Web UI tests pass (81 tests)
