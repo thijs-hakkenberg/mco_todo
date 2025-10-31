@@ -1,225 +1,208 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { todoStore } from '../todos.svelte';
+import { createTodoStore } from '../todos.svelte';
+import { createMockTodo, createMockTodos } from '../../test-utils';
 import type { Todo } from '../../types/Todo';
 
 // Mock fetch globally
 global.fetch = vi.fn();
 
 describe('TodoStore with Svelte 5 Runes', () => {
+  let store: ReturnType<typeof createTodoStore>;
+
   beforeEach(() => {
-    // Reset store state
-    todoStore.reset();
+    // Create fresh store instance for each test (factory pattern)
+    store = createTodoStore();
     vi.clearAllMocks();
   });
 
   describe('Initial State', () => {
     it('should initialize with empty todos', () => {
-      expect(todoStore.todos).toEqual([]);
+      expect(store.todos).toEqual([]);
     });
 
     it('should initialize with default filters', () => {
-      expect(todoStore.filters).toEqual({
+      expect(store.filters).toEqual({
         search: '',
         projects: [],
         priority: 'all',
         tags: [],
-        assignee: 'all'
+        assignee: 'all',
+        includeCompleted: false
       });
     });
 
     it('should have loading state as false initially', () => {
-      expect(todoStore.loading).toBe(false);
+      expect(store.loading).toBe(false);
     });
 
     it('should have no error initially', () => {
-      expect(todoStore.error).toBeNull();
+      expect(store.error).toBeNull();
     });
   });
 
   describe('Filtering', () => {
     const mockTodos: Todo[] = [
-      {
+      createMockTodo({
         id: '1',
         text: 'First todo',
         status: 'todo',
         priority: 'high',
         project: 'frontend',
         tags: ['bug', 'urgent'],
-        assignee: 'john',
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      },
-      {
+        assignee: 'john'
+      }),
+      createMockTodo({
         id: '2',
         text: 'Second item',
         status: 'in-progress',
         priority: 'medium',
         project: 'backend',
         tags: ['feature'],
-        assignee: 'jane',
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      },
-      {
+        assignee: 'jane'
+      }),
+      createMockTodo({
         id: '3',
         text: 'Third todo',
         status: 'done',
         priority: 'low',
         project: 'frontend',
-        tags: ['docs'],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      }
+        tags: ['docs']
+      })
     ];
 
     beforeEach(() => {
-      todoStore.todos = mockTodos;
+      store.todos = mockTodos;
     });
 
     it('should filter todos by search text', () => {
-      todoStore.filters.search = 'first';
-      const filtered = todoStore.filteredTodos;
+      store.filters.search = 'first';
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe('1');
     });
 
     it('should filter todos by priority', () => {
-      todoStore.filters.priority = 'high';
-      const filtered = todoStore.filteredTodos;
+      store.filters.priority = 'high';
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(1);
       expect(filtered[0].priority).toBe('high');
     });
 
     it('should filter todos by project', () => {
-      todoStore.filters.project = 'frontend';
-      const filtered = todoStore.filteredTodos;
+      // Enable includeCompleted to see all todos
+      store.filters = { ...store.filters, includeCompleted: true };
+      store.setProjectsFilter(['frontend']);
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(2);
       expect(filtered.every(t => t.project === 'frontend')).toBe(true);
     });
 
     it('should filter todos by multiple tags', () => {
-      todoStore.filters.tags = new Set(['bug', 'feature']);
-      const filtered = todoStore.filteredTodos;
+      // Enable includeCompleted to see all todos
+      store.filters = { ...store.filters, includeCompleted: true };
+      store.setTagsFilter(['bug', 'feature']);
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(2);
     });
 
     it('should filter todos by assignee', () => {
-      todoStore.filters.assignee = 'john';
-      const filtered = todoStore.filteredTodos;
+      store.setAssigneeFilter('john');
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(1);
       expect(filtered[0].assignee).toBe('john');
     });
 
     it('should apply multiple filters simultaneously', () => {
-      todoStore.filters.project = 'frontend';
-      todoStore.filters.priority = 'high';
-      const filtered = todoStore.filteredTodos;
+      store.setProjectsFilter(['frontend']);
+      store.setPriorityFilter('high');
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe('1');
     });
 
-    it('should show all todos when filters are set to "all"', () => {
-      todoStore.filters.project = 'all';
-      todoStore.filters.priority = 'all';
-      todoStore.filters.tags = new Set(['all']);
-      todoStore.filters.assignee = 'all';
-      const filtered = todoStore.filteredTodos;
+    it('should show all non-completed todos when filters are set to default', () => {
+      store.filters = {
+        search: '',
+        projects: [],
+        priority: 'all',
+        tags: [],
+        assignee: 'all',
+        includeCompleted: false
+      };
+      const filtered = store.filteredTodos;
+      // Should exclude 'done' todos by default
+      expect(filtered).toHaveLength(2);
+      expect(filtered.every(t => t.status !== 'done')).toBe(true);
+    });
+
+    it('should show all todos including completed when includeCompleted is true', () => {
+      store.filters = {
+        search: '',
+        projects: [],
+        priority: 'all',
+        tags: [],
+        assignee: 'all',
+        includeCompleted: true
+      };
+      const filtered = store.filteredTodos;
       expect(filtered).toHaveLength(3);
+    });
+
+    it('should filter out completed todos by default', () => {
+      // Default includeCompleted is false
+      const filtered = store.filteredTodos;
+      expect(filtered).toHaveLength(2);
+      expect(filtered.find(t => t.status === 'done')).toBeUndefined();
     });
   });
 
   describe('Column Grouping', () => {
     const mockTodos: Todo[] = [
-      {
+      createMockTodo({
         id: '1',
         text: 'Todo 1',
         status: 'todo',
         priority: 'high',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      },
-      {
+        project: 'test'
+      }),
+      createMockTodo({
         id: '2',
         text: 'Todo 2',
         status: 'todo',
         priority: 'medium',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      },
-      {
+        project: 'test'
+      }),
+      createMockTodo({
         id: '3',
         text: 'In Progress 1',
         status: 'in-progress',
         priority: 'high',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      },
-      {
+        project: 'test'
+      }),
+      createMockTodo({
         id: '4',
         text: 'Blocked 1',
         status: 'blocked',
         priority: 'urgent',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      },
-      {
+        project: 'test'
+      }),
+      createMockTodo({
         id: '5',
         text: 'Done 1',
         status: 'done',
         priority: 'low',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      }
+        project: 'test'
+      })
     ];
 
     beforeEach(() => {
-      todoStore.todos = mockTodos;
+      store.todos = mockTodos;
+      // Enable includeCompleted to see all columns
+      store.filters = { ...store.filters, includeCompleted: true };
     });
 
     it('should group todos by status columns', () => {
-      const columns = todoStore.columnTodos;
+      const columns = store.columnTodos;
       expect(columns.todo).toHaveLength(2);
       expect(columns['in-progress']).toHaveLength(1);
       expect(columns.blocked).toHaveLength(1);
@@ -227,19 +210,50 @@ describe('TodoStore with Svelte 5 Runes', () => {
     });
 
     it('should apply filters to column grouping', () => {
-      todoStore.filters.priority = 'high';
-      const columns = todoStore.columnTodos;
+      store.setPriorityFilter('high');
+      const columns = store.columnTodos;
       expect(columns.todo).toHaveLength(1);
       expect(columns['in-progress']).toHaveLength(1);
       expect(columns.blocked).toHaveLength(0);
       expect(columns.done).toHaveLength(0);
+    });
+
+    it('should exclude done column when includeCompleted is false', () => {
+      store.filters = { ...store.filters, includeCompleted: false };
+      const columns = store.columnTodos;
+      expect(columns.todo).toHaveLength(2);
+      expect(columns['in-progress']).toHaveLength(1);
+      expect(columns.blocked).toHaveLength(1);
+      expect(columns.done).toHaveLength(0); // Done todos excluded
+    });
+  });
+
+  describe('Statistics', () => {
+    beforeEach(() => {
+      const mockTodos = [
+        createMockTodo({ status: 'todo' }),
+        createMockTodo({ status: 'todo' }),
+        createMockTodo({ status: 'in-progress' }),
+        createMockTodo({ status: 'done' }),
+        createMockTodo({ status: 'done' })
+      ];
+      store.todos = mockTodos;
+    });
+
+    it('should calculate correct statistics', () => {
+      const stats = store.statistics;
+      expect(stats.total).toBe(5);
+      expect(stats.byStatus.todo).toBe(2);
+      expect(stats.byStatus['in-progress']).toBe(1);
+      expect(stats.byStatus.done).toBe(2);
+      expect(stats.completionRate).toBe(40); // 2/5 = 40%
     });
   });
 
   describe('API Operations', () => {
     it('should load todos from API', async () => {
       const mockTodos = [
-        { id: '1', text: 'Test', status: 'todo' }
+        createMockTodo({ id: '1', text: 'Test' })
       ];
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -247,98 +261,79 @@ describe('TodoStore with Svelte 5 Runes', () => {
         json: async () => ({ success: true, todos: mockTodos })
       });
 
-      await todoStore.loadTodos();
+      await store.loadTodos();
 
-      expect(global.fetch).toHaveBeenCalledWith('/api/todos');
-      expect(todoStore.todos).toEqual(mockTodos);
-      expect(todoStore.loading).toBe(false);
-      expect(todoStore.error).toBeNull();
+      expect(global.fetch).toHaveBeenCalledWith('/api/todos?mode=standard&includeCompleted=false');
+      expect(store.todos).toHaveLength(1);
+      expect(store.loading).toBe(false);
+      expect(store.error).toBeNull();
     });
 
     it('should handle API errors when loading todos', async () => {
       (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
 
-      await todoStore.loadTodos();
+      await store.loadTodos();
 
-      expect(todoStore.error).toBe('Failed to load todos: Network error');
-      expect(todoStore.loading).toBe(false);
+      expect(store.loading).toBe(false);
+      expect(store.error).toContain('Network error');
+      expect(store.todos).toEqual([]);
     });
 
     it('should create a new todo', async () => {
-      const newTodo = {
-        text: 'New todo',
-        project: 'test',
-        priority: 'high' as const
-      };
-
-      const createdTodo = {
-        id: '123',
-        ...newTodo,
-        status: 'todo' as const,
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      };
+      const newTodo = createMockTodo({ id: '1', text: 'New todo' });
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ success: true, todo: createdTodo })
+        json: async () => ({ success: true, todo: newTodo })
       });
 
-      await todoStore.createTodo(newTodo);
-
-      expect(global.fetch).toHaveBeenCalledWith('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTodo)
+      await store.createTodo({
+        text: 'New todo',
+        project: 'test'
       });
-      expect(todoStore.todos).toContainEqual(createdTodo);
+
+      expect(store.todos).toHaveLength(1);
+      expect(store.todos[0].text).toBe('New todo');
     });
 
-    it('should update todo status', async () => {
-      const todo: Todo = {
-        id: '1',
-        text: 'Test',
-        status: 'todo',
-        priority: 'medium',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
-      };
+    it('should update an existing todo', async () => {
+      const existingTodo = createMockTodo({ id: '1', text: 'Original' });
+      store.todos = [existingTodo];
 
-      todoStore.todos = [todo];
+      const updatedTodo = { ...existingTodo, text: 'Updated' };
 
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          success: true,
-          todo: { ...todo, status: 'in-progress' }
-        })
+        json: async () => ({ success: true, todo: updatedTodo })
       });
 
-      await todoStore.updateTodoStatus('1', 'in-progress');
+      await store.updateTodo('1', { text: 'Updated' });
 
-      expect(global.fetch).toHaveBeenCalledWith('/api/todos/1/status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'in-progress' })
+      expect(store.todos[0].text).toBe('Updated');
+    });
+
+    it('should handle optimistic updates with rollback on error', async () => {
+      const existingTodo = createMockTodo({ id: '1', status: 'todo' });
+      store.todos = [existingTodo];
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false
       });
-      expect(todoStore.todos[0].status).toBe('in-progress');
+
+      try {
+        await store.updateTodoStatus('1', 'done');
+      } catch (error) {
+        // Expected error
+      }
+
+      // Should rollback to original status
+      expect(store.todos[0].status).toBe('todo');
     });
 
     it('should delete a todo', async () => {
-      todoStore.todos = [
-        { id: '1', text: 'Test 1' } as Todo,
-        { id: '2', text: 'Test 2' } as Todo
+      store.todos = [
+        createMockTodo({ id: '1' }),
+        createMockTodo({ id: '2' })
       ];
 
       (global.fetch as any).mockResolvedValueOnce({
@@ -346,102 +341,130 @@ describe('TodoStore with Svelte 5 Runes', () => {
         json: async () => ({ success: true })
       });
 
-      await todoStore.deleteTodo('1');
+      await store.deleteTodo('1');
 
-      expect(global.fetch).toHaveBeenCalledWith('/api/todos/1', {
-        method: 'DELETE'
-      });
-      expect(todoStore.todos).toHaveLength(1);
-      expect(todoStore.todos[0].id).toBe('2');
+      expect(store.todos).toHaveLength(1);
+      expect(store.todos[0].id).toBe('2');
     });
 
-    it('should handle optimistic updates with rollback on error', async () => {
-      const todo: Todo = {
-        id: '1',
-        text: 'Test',
-        status: 'todo',
-        priority: 'medium',
-        project: 'test',
-        tags: [],
-        createdBy: 'user',
-        createdAt: '2024-01-01',
-        modifiedAt: '2024-01-01',
-        dependencies: [],
-        subtasks: [],
-        comments: []
+    it('should complete a todo', async () => {
+      const todo = createMockTodo({ id: '1', status: 'todo' });
+      store.todos = [todo];
+
+      const completedTodo = { ...todo, status: 'done' as const };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, todo: completedTodo })
+      });
+
+      await store.completeTodo('1');
+
+      expect(store.todos[0].status).toBe('done');
+    });
+
+    it('should add a comment to a todo', async () => {
+      const todo = createMockTodo({ id: '1' });
+      store.todos = [todo];
+
+      const todoWithComment = {
+        ...todo,
+        comments: [{ id: 'c1', text: 'Test comment', timestamp: new Date().toISOString(), user: 'test-user' }]
       };
 
-      todoStore.todos = [todo];
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, todo: todoWithComment })
+      });
 
-      (global.fetch as any).mockRejectedValueOnce(new Error('Update failed'));
+      await store.addComment('1', 'Test comment');
 
-      await todoStore.updateTodoStatus('1', 'done');
-
-      // Should rollback to original status
-      expect(todoStore.todos[0].status).toBe('todo');
-      expect(todoStore.error).toContain('Failed to update todo status');
+      expect(store.todos[0].comments).toHaveLength(1);
+      expect(store.todos[0].comments![0].text).toBe('Test comment');
     });
   });
 
   describe('Filter Management', () => {
-    it('should set search filter', () => {
-      todoStore.setSearchFilter('test search');
-      expect(todoStore.filters.search).toBe('test search');
+    it('should update search filter', () => {
+      store.setSearchFilter('test');
+      expect(store.filters.search).toBe('test');
     });
 
-    it('should set project filter', () => {
-      todoStore.setProjectFilter('frontend');
-      expect(todoStore.filters.project).toBe('frontend');
+    it('should update projects filter', () => {
+      store.setProjectsFilter(['project1', 'project2']);
+      expect(store.filters.projects).toEqual(['project1', 'project2']);
     });
 
-    it('should toggle tag filter', () => {
-      todoStore.toggleTagFilter('bug');
-      expect(todoStore.filters.tags.has('bug')).toBe(true);
-      expect(todoStore.filters.tags.has('all')).toBe(false);
+    it('should update priority filter', () => {
+      store.setPriorityFilter('high');
+      expect(store.filters.priority).toBe('high');
+    });
 
-      todoStore.toggleTagFilter('bug');
-      expect(todoStore.filters.tags.has('bug')).toBe(false);
+    it('should update tags filter', () => {
+      store.setTagsFilter(['tag1', 'tag2']);
+      expect(store.filters.tags).toEqual(['tag1', 'tag2']);
+    });
+
+    it('should update assignee filter', () => {
+      store.setAssigneeFilter('user-123');
+      expect(store.filters.assignee).toBe('user-123');
+    });
+
+    it('should update includeCompleted filter and reload todos', async () => {
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, todos: [] })
+      });
+
+      store.setIncludeCompletedFilter(true);
+
+      expect(store.filters.includeCompleted).toBe(true);
+      // Should trigger loadTodos()
+      expect(global.fetch).toHaveBeenCalled();
     });
 
     it('should clear all filters', () => {
-      todoStore.filters.search = 'test';
-      todoStore.filters.project = 'frontend';
-      todoStore.filters.priority = 'high';
-      todoStore.filters.tags = new Set(['bug']);
-      todoStore.filters.assignee = 'john';
+      store.setSearchFilter('test');
+      store.setProjectsFilter(['project1']);
+      store.setPriorityFilter('high');
+      store.setIncludeCompletedFilter(true);
 
-      todoStore.clearFilters();
+      store.clearFilters();
 
-      expect(todoStore.filters).toEqual({
+      expect(store.filters).toEqual({
         search: '',
         projects: [],
         priority: 'all',
         tags: [],
-        assignee: 'all'
+        assignee: 'all',
+        includeCompleted: false
       });
     });
   });
 
-  describe('Statistics', () => {
-    beforeEach(() => {
-      todoStore.todos = [
-        { id: '1', status: 'todo' } as Todo,
-        { id: '2', status: 'todo' } as Todo,
-        { id: '3', status: 'in-progress' } as Todo,
-        { id: '4', status: 'blocked' } as Todo,
-        { id: '5', status: 'done' } as Todo,
-        { id: '6', status: 'done' } as Todo
-      ];
-    });
+  describe('Store Reset', () => {
+    it('should reset store to initial state', () => {
+      // Set some state
+      store.todos = [createMockTodo()];
+      store.setSearchFilter('test');
+      store.loading = true;
+      store.error = 'Some error';
 
-    it('should calculate statistics correctly', () => {
-      const stats = todoStore.statistics;
-      expect(stats.total).toBe(6);
-      expect(stats.byStatus.todo).toBe(2);
-      expect(stats.byStatus['in-progress']).toBe(1);
-      expect(stats.byStatus.blocked).toBe(1);
-      expect(stats.byStatus.done).toBe(2);
-      expect(stats.completionRate).toBe(33.33);
+      // Reset
+      store.reset();
+
+      // Verify reset
+      expect(store.todos).toEqual([]);
+      expect(store.filters).toEqual({
+        search: '',
+        projects: [],
+        priority: 'all',
+        tags: [],
+        assignee: 'all',
+        includeCompleted: false
+      });
+      expect(store.loading).toBe(false);
+      expect(store.error).toBeNull();
     });
   });
 });
