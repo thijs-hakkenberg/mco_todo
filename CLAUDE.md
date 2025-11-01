@@ -235,7 +235,12 @@ All components are fully implemented:
 ## References
 
 - **Main Documentation**: `README.md` - Complete user guide and setup instructions
-- **Changelog**: `CHANGELOG.md` - Version history and release notes
+- **Claude Code Examples**: `docs/CLAUDE_CODE_EXAMPLES.md` - Configuration and usage examples
+- **Quick Start Guide**: `docs/QUICKSTART.md` - Quick start for running the kanban board
+- **Test Guide**: `docs/TEST_GUIDE.md` - Testing instructions and scenarios
+- **Testing Limitations**: `docs/TESTING_LIMITATIONS.md` - Known testing limitations
+- **Changelog**: `docs/CHANGELOG.md` - Version history and release notes
+- **Architecture Decisions**: `docs/adr/` - Architecture Decision Records
 - **API Documentation**: REST API endpoints in `src/api/routes/todos.ts`
 - **MCP Tools**: MCP tool definitions in `src/server/MCPServer.ts`
 - **Type Definitions**: `src/types/Todo.ts` - Complete data model

@@ -130,7 +130,7 @@ Use the provided startup scripts for the easiest experience:
 
 Then open http://localhost:5173 in your browser.
 
-See [QUICKSTART.md](QUICKSTART.md) for detailed instructions and troubleshooting.
+See [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions and troubleshooting.
 
 ### Manual Setup and Running
 
@@ -457,6 +457,18 @@ Ensure the MCP server has read/write access to:
 - Set `NODE_ENV=development` for detailed logging
 - Check console output for request logs and errors
 - Use browser DevTools Network tab to inspect API calls
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick start guide for running the kanban board
+- **[CLAUDE_CODE_EXAMPLES.md](docs/CLAUDE_CODE_EXAMPLES.md)** - Configuration and usage examples for Claude Code and Claude Desktop
+- **[TEST_GUIDE.md](docs/TEST_GUIDE.md)** - Testing instructions and scenarios
+- **[TESTING_LIMITATIONS.md](docs/TESTING_LIMITATIONS.md)** - Known testing limitations with Svelte 5 runes
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history and release notes
+- **[docs/adr/](docs/adr/)** - Architecture Decision Records
+- **[docs/releases/](docs/releases/)** - Detailed release notes for each version
 
 ## Contributing
 

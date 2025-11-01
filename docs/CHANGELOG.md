@@ -5,6 +5,45 @@ All notable changes to the Git-Based MCP Todo Server will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2025-11-01
+
+### Added
+- **Claude Code Examples Documentation**: Created comprehensive `docs/CLAUDE_CODE_EXAMPLES.md`
+  - Configuration examples for Claude Desktop and Claude Code
+  - Basic tool usage patterns with examples
+  - Common workflows (daily standup, sprint planning, bug triage, code review)
+  - Advanced patterns (hierarchical todos, dependency management, Git history analysis)
+  - Integration guidance for concurrent Web UI + Claude usage
+  - Testing instructions with MCP Inspector
+  - Comprehensive troubleshooting section
+  - Best practices for todo management
+
+### Changed
+- **Documentation Structure**: Reorganized all documentation into `docs/` directory
+  - Moved `CHANGELOG.md` → `docs/CHANGELOG.md`
+  - Moved `QUICKSTART.md` → `docs/QUICKSTART.md`
+  - Moved `web/CHANGELOG_v1.6.0.md` → `docs/releases/CHANGELOG_v1.6.0.md`
+  - Moved `web/TEST_GUIDE.md` → `docs/TEST_GUIDE.md`
+  - Root now contains only `CLAUDE.md` and `README.md`
+  - Created `docs/releases/` subdirectory for version-specific release notes
+- **README.md**: Added new "Documentation" section with links to all docs
+- **CLAUDE.md**: Updated "References" section with new documentation paths
+
+### Technical Details
+
+#### Documentation Files Created
+- `docs/CLAUDE_CODE_EXAMPLES.md` (700+ lines): Complete guide for Claude Code/Desktop integration
+
+#### Documentation Files Reorganized
+- All documentation now centralized in `docs/` directory
+- Improved discoverability and organization
+- Preserved Git history with `git mv` command
+
+#### Updated References
+- Fixed all documentation links in README.md
+- Updated CLAUDE.md references section
+- All internal links now point to correct paths
+
 ## [1.6.0] - 2025-11-01
 
 ### Added
