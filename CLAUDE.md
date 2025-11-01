@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Git-Based MCP Todo Server - A fully implemented Model Context Protocol server for managing todos with Git version control. The project includes:
 - Complete MCP server for Claude Desktop and Claude Code integration
-- Full-stack web-based Kanban board with Svelte 5 frontend
+- Full-stack web-based Kanban board with Svelte 5 frontend (with full CRUD operations)
 - Express API server bridging web UI and MCP server
-- Comprehensive test coverage (~94% overall, 100% for web components)
+- Comprehensive test coverage (~94% backend, 100% store tests - component tests excluded due to Svelte 5 runes limitation)
 
 ## Development Commands
 
@@ -62,7 +62,8 @@ Browser ←→ Vite Dev Server ←→ API Server (Express) ←→ MCP Client (st
 Layers:
 1. **Frontend** (`web/src/`) - Svelte 5 with Runes-based reactive state
    - Components: KanbanBoard, KanbanColumn, TodoCard, FilterBar
-   - Stores: todos.svelte.ts (reactive state management)
+   - Stores: todos.svelte.ts (reactive state management with factory pattern)
+   - Features: Create, Read, Update, Delete todos with drag-and-drop status changes
 2. **API Server** (`src/api/server.ts`) - Express REST API
 3. **MCP Client** (`src/api/mcpClient.ts`) - Stdio communication with MCP server
 4. **MCP Server** - Reuses the same server as Claude Desktop
@@ -159,7 +160,13 @@ All components are fully implemented:
 4. ✅ **MCP Server**: Full MCP protocol implementation with all tools
 5. ✅ **Tests**: Comprehensive test coverage (~94%)
 6. ✅ **API Server**: Express server bridging web UI and MCP
-7. ✅ **Web Frontend**: Full Svelte 5 kanban board implementation
+7. ✅ **Web Frontend**: Full Svelte 5 kanban board with complete CRUD operations
+   - Create todos with add modal
+   - View todo details in detail modal
+   - Edit todos with comprehensive edit modal (all fields)
+   - Delete todos
+   - Drag-and-drop status changes
+   - Filter and search functionality
 
 ## Testing Approach
 
@@ -171,11 +178,12 @@ All components are fully implemented:
 - Supertest for API endpoint testing
 
 ### Frontend Tests (Vitest)
-- Vitest with jsdom environment
-- Svelte Testing Library for component tests
+- Vitest with jsdom environment for store tests
+- Store tests: 49 passing (100% coverage of business logic)
+- Component tests: Excluded due to Svelte 5 runes + jsdom limitation (see `web/docs/TESTING_LIMITATIONS.md`)
 - Mock API calls with fetch mocks
-- Test user interactions and drag-and-drop
-- Coverage thresholds: 80% across all metrics
+- Factory pattern enables isolated store testing
+- Coverage: 100% for store logic, backend ~94%
 
 ## Key Dependencies
 

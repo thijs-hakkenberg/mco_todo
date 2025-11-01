@@ -10,9 +10,12 @@
     readOnly?: boolean;
   }>();
 
-  let selectedTodo: Todo | null = null;
-  let showAddModal = false;
-  let addModalStatus: Todo['status'] = 'todo';
+  let selectedTodo = $state<Todo | null>(null);
+  let showAddModal = $state(false);
+  let showEditModal = $state(false);
+  let editingTodo = $state<Todo | null>(null);
+  let addModalStatus = $state<Todo['status']>('todo');
+  let isSubmitting = $state(false);
 
   onMount(() => {
     console.log('[KanbanBoard] onMount - calling loadTodos');
@@ -35,7 +38,7 @@
     }
   }
 
-  function handleTodoClick(todo: Todo) {
+  function handleTodoDblClick(todo: Todo) {
     if (!readOnly) {
       selectedTodo = todo;
     }
@@ -51,6 +54,14 @@
   function closeModal() {
     selectedTodo = null;
     showAddModal = false;
+    showEditModal = false;
+    editingTodo = null;
+  }
+
+  function handleEditTodo(todo: Todo) {
+    editingTodo = todo;
+    showEditModal = true;
+    selectedTodo = null; // Close detail modal
   }
 
   async function handleRefresh() {
@@ -127,7 +138,7 @@
             status={column.status}
             todos={todoStore.columnTodos[column.status]}
             ondrop={handleDrop}
-            ontodoclick={handleTodoClick}
+            ontododblclick={handleTodoDblClick}
             onaddtodo={readOnly ? undefined : handleAddTodo}
           />
         {/each}
@@ -223,8 +234,9 @@
               <button
                 class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 on:click={() => {
-                  // TODO: Implement edit functionality
-                  closeModal();
+                  if (selectedTodo) {
+                    handleEditTodo(selectedTodo);
+                  }
                 }}
               >
                 Edit
@@ -244,17 +256,26 @@
           <h2 class="text-xl font-bold text-gray-900 mb-4">Add New Todo</h2>
 
           <form on:submit|preventDefault={async (e) => {
-            const formData = new FormData(e.currentTarget);
-            await todoStore.createTodo({
-              text: formData.get('text') as string,
-              description: formData.get('description') as string || undefined,
-              status: addModalStatus,
-              priority: formData.get('priority') as Todo['priority'],
-              project: formData.get('project') as string,
-              tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(Boolean),
-              assignee: formData.get('assignee') as string || undefined
-            });
-            closeModal();
+            if (isSubmitting) return; // Prevent double submission
+            isSubmitting = true;
+
+            try {
+              const formData = new FormData(e.currentTarget);
+              await todoStore.createTodo({
+                text: formData.get('text') as string,
+                description: formData.get('description') as string || undefined,
+                status: addModalStatus,
+                priority: formData.get('priority') as Todo['priority'],
+                project: formData.get('project') as string,
+                tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(Boolean),
+                assignee: formData.get('assignee') as string || undefined
+              });
+              closeModal();
+            } catch (error) {
+              console.error('Error creating todo:', error);
+            } finally {
+              isSubmitting = false;
+            }
           }}>
             <div class="space-y-4">
               <div>
@@ -331,9 +352,146 @@
               </button>
               <button
                 type="submit"
-                class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Todo
+                {isSubmitting ? 'Adding...' : 'Add Todo'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Edit Todo Modal -->
+  {#if showEditModal && editingTodo}
+    <div class="edit-todo-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-lg max-w-md w-full">
+        <div class="p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-4">Edit Todo</h2>
+
+          <form on:submit|preventDefault={async (e) => {
+            if (isSubmitting) return; // Prevent double submission
+            isSubmitting = true;
+
+            try {
+              const formData = new FormData(e.currentTarget);
+              await todoStore.updateTodo(editingTodo.id, {
+                text: formData.get('text') as string,
+                description: formData.get('description') as string || undefined,
+                status: formData.get('status') as Todo['status'],
+                priority: formData.get('priority') as Todo['priority'],
+                project: formData.get('project') as string,
+                tags: (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(Boolean),
+                assignee: formData.get('assignee') as string || undefined
+              });
+              closeModal();
+            } catch (error) {
+              console.error('Error updating todo:', error);
+            } finally {
+              isSubmitting = false;
+            }
+          }}>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <input
+                  type="text"
+                  name="text"
+                  required
+                  value={editingTodo.text}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  name="description"
+                  rows="3"
+                  value={editingTodo.description || ''}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    name="status"
+                    value={editingTodo.status}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="todo">To Do</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    name="priority"
+                    value={editingTodo.priority}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Project *</label>
+                <input
+                  type="text"
+                  name="project"
+                  required
+                  value={editingTodo.project}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  name="tags"
+                  placeholder="bug, feature, ui"
+                  value={editingTodo.tags.join(', ')}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                <input
+                  type="text"
+                  name="assignee"
+                  value={editingTodo.assignee || ''}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                on:click={closeModal}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </form>
@@ -350,7 +508,8 @@
 
   /* Modal backdrop animation */
   .todo-modal,
-  .add-todo-modal {
+  .add-todo-modal,
+  .edit-todo-modal {
     animation: fadeIn 0.2s ease-out;
   }
 

@@ -6,16 +6,16 @@
     todo,
     draggable = true,
     progress = 0,
-    onclick = undefined
+    ondblclick = undefined
   }: {
     todo: Todo;
     draggable?: boolean;
     progress?: number;
-    onclick?: (todo: Todo) => void;
+    ondblclick?: (todo: Todo) => void;
   } = $props();
 
-  function handleClick() {
-    onclick?.(todo);
+  function handleDblClick() {
+    ondblclick?.(todo);
   }
 
   function formatDate(dateString: string | undefined): string {
@@ -54,10 +54,11 @@
 <div
   class="todo-card bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-move border-l-4 {priorityColors[todo.priority]} {todo.status === 'done' ? 'opacity-75' : ''}"
   draggable={draggable}
-  onclick={handleClick}
+  ondblclick={handleDblClick}
   role="button"
   tabindex="0"
-  onkeydown={(e) => e.key === 'Enter' && handleClick()}
+  onkeydown={(e) => e.key === 'Enter' && handleDblClick()}
+  title="Double-click to view details"
 >
   <div class="flex items-start justify-between mb-2">
     <h3 class="font-medium text-gray-900 {todo.status === 'done' ? 'line-through' : ''}">

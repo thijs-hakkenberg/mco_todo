@@ -5,6 +5,74 @@ All notable changes to the Git-Based MCP Todo Server will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-11-01
+
+### Added
+- **Edit Todo Functionality**: Complete edit capability for all todo fields via Web UI
+  - Full edit modal with pre-populated form fields
+  - Edit all fields: text, description, status, priority, project, tags, assignee
+  - Access via double-click todo card → click "Edit" button
+  - Optimistic updates with automatic error rollback
+  - TDD implementation with 3 new comprehensive update tests
+- **Double-Submission Prevention**: Added loading states to prevent duplicate creation
+  - `isSubmitting` flag prevents form double-submission
+  - Buttons disabled during submission
+  - Visual feedback: "Adding..." / "Saving..." button text
+- **UI/UX Improvements**:
+  - Tooltip on cards: "Double-click to view details"
+  - Loading states provide clear visual feedback during operations
+
+### Changed
+- **Add Button Position**: Moved from bottom to **top of each Kanban lane**
+  - Improves accessibility (no scrolling needed)
+  - Better user experience for quick todo creation
+- **Card Interaction**: Changed from single-click to **double-click** to view details
+  - Prevents conflict with drag-and-drop functionality
+  - Single-click + drag now works smoothly without accidental modal opens
+  - More intuitive UX pattern
+- **Reactivity Updates**: Migrated modal state to `$state()` rune
+  - Fixed Svelte 5 reactivity warnings
+  - Proper reactive state management for modals
+
+### Fixed
+- **Duplicate Todo Creation Bug**: Fixed todos being created twice
+  - Root cause: Form was submitting multiple times on rapid clicks
+  - Solution: Added `isSubmitting` guard and disabled button states
+  - Verified with console logging (count: 132 → 133, not 134)
+- **Drag/Click Conflict**: Eliminated modal opening during drag operations
+  - Changed interaction model to double-click for details
+  - Drag-and-drop now works without interference
+
+### Technical Details
+
+#### Test Coverage
+- **Store Tests**: 49/49 passing (100%) ✅
+  - Added 3 comprehensive update tests:
+    - Update multiple fields simultaneously
+    - Partial updates (only specified fields)
+    - Optimistic update rollback on error
+- **Backend Tests**: 154 passing (~94% coverage)
+- **TDD Methodology**: Full Red-Green-Refactor cycle followed
+
+#### Files Modified
+- `web/src/lib/components/KanbanBoard.svelte`: Added edit modal, double-submission prevention
+- `web/src/lib/components/KanbanColumn.svelte`: Repositioned add button, changed click to double-click
+- `web/src/lib/components/TodoCard.svelte`: Changed to double-click interaction with tooltip
+- `web/src/lib/stores/__tests__/todos.test.ts`: Added 3 comprehensive update tests
+- `CLAUDE.md`: Updated with accurate feature status and testing information
+
+#### Documentation
+- Created `web/TEST_GUIDE.md`: Step-by-step testing instructions for all features
+- Created `web/CHANGELOG_v1.6.0.md`: Detailed release notes
+- Updated `CLAUDE.md`: Accurate project status and CRUD operations documentation
+
+### User Impact
+- ✅ Full CRUD operations now available in Web UI
+- ✅ Better UX with add button at top of lanes
+- ✅ Smooth drag-and-drop without click conflicts
+- ✅ No more duplicate todo creation
+- ✅ Clear visual feedback during save operations
+
 ## [1.5.0] - 2025-11-01
 
 ### Added

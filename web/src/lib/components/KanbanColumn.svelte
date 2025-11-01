@@ -8,14 +8,14 @@
     status,
     todos = [],
     ondrop = undefined,
-    ontodoclick = undefined,
+    ontododblclick = undefined,
     onaddtodo = undefined
   }: {
     title: string;
     status: Todo['status'];
     todos?: Todo[];
     ondrop?: (event: { todoId: string; targetStatus: Todo['status'] }) => void;
-    ontodoclick?: (todo: Todo) => void;
+    ontododblclick?: (todo: Todo) => void;
     onaddtodo?: (status: Todo['status']) => void;
   } = $props();
 
@@ -46,8 +46,8 @@
     }
   }
 
-  function handleTodoClick(todo: Todo) {
-    ontodoclick?.(todo);
+  function handleTodoDblClick(todo: Todo) {
+    ontododblclick?.(todo);
   }
 
   function handleAddClick() {
@@ -86,6 +86,21 @@
     </div>
   </div>
 
+  <!-- Add Todo Button (Top) -->
+  {#if onaddtodo}
+    <div class="p-3 border-b border-gray-200">
+      <button
+        class="add-todo-button w-full py-2 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+        on:click={handleAddClick}
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Add Todo
+      </button>
+    </div>
+  {/if}
+
   <!-- Column Content -->
   <div class="flex-1 overflow-y-auto p-4 space-y-3">
     {#if todos.length === 0}
@@ -106,27 +121,12 @@
           <TodoCard
             {todo}
             draggable={true}
-            onclick={handleTodoClick}
+            ondblclick={handleTodoDblClick}
           />
         </div>
       {/each}
     {/if}
   </div>
-
-  <!-- Add Todo Button -->
-  {#if onaddtodo}
-    <div class="p-3 border-t border-gray-200">
-      <button
-        class="add-todo-button w-full py-2 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors flex items-center justify-center gap-2"
-        on:click={handleAddClick}
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-        </svg>
-        Add Todo
-      </button>
-    </div>
-  {/if}
 </div>
 
 <style>

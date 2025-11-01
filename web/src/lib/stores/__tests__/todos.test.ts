@@ -312,6 +312,72 @@ describe('TodoStore with Svelte 5 Runes', () => {
       expect(store.todos[0].text).toBe('Updated');
     });
 
+    it('should update multiple fields of a todo', async () => {
+      const existingTodo = createMockTodo({
+        id: '1',
+        text: 'Original',
+        description: 'Old description',
+        priority: 'low',
+        project: 'old-project',
+        tags: ['old-tag'],
+        assignee: 'john'
+      });
+      store.todos = [existingTodo];
+
+      const updates = {
+        text: 'Updated text',
+        description: 'New description',
+        priority: 'high' as const,
+        project: 'new-project',
+        tags: ['new-tag', 'another-tag'],
+        assignee: 'jane'
+      };
+
+      const updatedTodo = { ...existingTodo, ...updates };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, todo: updatedTodo })
+      });
+
+      await store.updateTodo('1', updates);
+
+      expect(store.todos[0].text).toBe('Updated text');
+      expect(store.todos[0].description).toBe('New description');
+      expect(store.todos[0].priority).toBe('high');
+      expect(store.todos[0].project).toBe('new-project');
+      expect(store.todos[0].tags).toEqual(['new-tag', 'another-tag']);
+      expect(store.todos[0].assignee).toBe('jane');
+    });
+
+    it('should update only specified fields, leaving others unchanged', async () => {
+      const existingTodo = createMockTodo({
+        id: '1',
+        text: 'Original',
+        description: 'Keep this',
+        priority: 'low',
+        project: 'test'
+      });
+      store.todos = [existingTodo];
+
+      const updates = {
+        text: 'Updated text only'
+      };
+
+      const updatedTodo = { ...existingTodo, ...updates };
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, todo: updatedTodo })
+      });
+
+      await store.updateTodo('1', updates);
+
+      expect(store.todos[0].text).toBe('Updated text only');
+      expect(store.todos[0].description).toBe('Keep this');
+      expect(store.todos[0].priority).toBe('low');
+    });
+
     it('should handle optimistic updates with rollback on error', async () => {
       const existingTodo = createMockTodo({ id: '1', status: 'todo' });
       store.todos = [existingTodo];
